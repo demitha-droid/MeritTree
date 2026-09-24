@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Serene Lotus Offering -->
+    <!-- Water Ripple Base -->
+    <path
+        android:fillColor="#1526A69A"
+        android:pathData="M60,105m-48,0a48,8 0 1,1 96,0a48,8 0 1,1 -96,0" />
+    <path
+        android:fillColor="#2526A69A"
+        android:pathData="M60,102m-36,0a36,6 0 1,1 72,0a36,6 0 1,1 -72,0" />
+    <!-- Outer Lotus Petals -->
+    <path
+        android:fillColor="#E57373"
+        android:pathData="M60,95 C40,95 24,78 30,55 C36,55 48,72 60,95 Z" />
+    <path
+        android:fillColor="#E57373"
+        android:pathData="M60,95 C80,95 96,78 90,55 C84,55 72,72 60,95 Z" />
+    <!-- Middle Lotus Petals -->
+    <path
+        android:fillColor="#F06292"
+        android:pathData="M60,95 C45,90 35,68 45,45 C52,58 58,80 60,95 Z" />
+    <path
+        android:fillColor="#F06292"
+        android:pathData="M60,95 C75,90 85,68 75,45 C68,58 62,80 60,95 Z" />
+    <!-- Center Lotus Petal -->
+    <path
+        android:fillColor="#FF80AB"
+        android:pathData="M60,95 C52,80 50,55 60,35 C70,55 68,80 60,95 Z" />
+    <!-- Golden Core / Jewel in the Lotus -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M60,65m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
+    <path
+        android:fillColor="#FFF59D"
+        android:pathData="M60,65m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+</vector>

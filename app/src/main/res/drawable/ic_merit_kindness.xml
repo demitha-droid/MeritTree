@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Loving-Kindness / Metta Caring Hands & Heart Sprout -->
+    <!-- Aura -->
+    <path
+        android:fillColor="#15E91E63"
+        android:pathData="M60,60m-50,0a50,50 0 1,1 100,0a50,50 0 1,1 -100,0" />
+    <!-- Heart / Love of Metta -->
+    <path
+        android:fillColor="#EC407A"
+        android:pathData="M60,45 C55,30 35,32 35,48 C35,62 55,75 60,80 C65,75 85,62 85,48 C85,32 65,30 60,45 Z" />
+    <path
+        android:fillColor="#F48FB1"
+        android:pathData="M60,48 C56,36 42,38 42,50 C42,60 56,70 60,74 C64,70 78,60 78,50 C78,38 64,36 60,48 Z" />
+    <!-- Sprouting Bodhi leaf inside the heart -->
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M60,34 C61,40 65,48 60,58 C55,48 59,40 60,34 Z" />
+    <!-- Cupped hands underneath supporting the heart -->
+    <path
+        android:strokeColor="#FFB74D"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M24,78 C32,96 52,98 60,98 C68,98 88,96 96,78" />
+</vector>

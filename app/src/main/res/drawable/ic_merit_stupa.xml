@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Golden Stupa / Pagoda -->
+    <!-- Base Terraces -->
+    <path
+        android:fillColor="#8D6E63"
+        android:pathData="M24,102 L96,102 L92,94 L28,94 Z" />
+    <path
+        android:fillColor="#A1887F"
+        android:pathData="M32,94 L88,94 L84,86 L36,86 Z" />
+    <path
+        android:fillColor="#BCAAA4"
+        android:pathData="M38,86 L82,86 L80,80 L40,80 Z" />
+    <!-- Stupa Dome (Anda / Bell) in Golden Hue -->
+    <path
+        android:fillColor="#FFCA28"
+        android:pathData="M40,80 C40,54 50,48 60,48 C70,48 80,54 80,80 Z" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M46,78 C46,58 54,52 60,52 C66,52 74,58 74,78 Z" />
+    <!-- Harmika (Square reliquary block) -->
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M52,48 L68,48 L68,42 L52,42 Z" />
+    <!-- Spire Rings (Chattras) -->
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M54,42 L66,42 L64,36 L56,36 Z" />
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M56,36 L64,36 L62,30 L58,30 Z" />
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M57,30 L63,30 L61,24 L59,24 Z" />
+    <!-- Pinnacle / Jewel (Ushnisha finial) with golden star gleam -->
+    <path
+        android:fillColor="#FFF59D"
+        android:pathData="M60,16m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+    <path
+        android:strokeColor="#FFEE58"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,10 L60,22" />
+    <path
+        android:strokeColor="#FFEE58"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,16 L66,16" />
+</vector>

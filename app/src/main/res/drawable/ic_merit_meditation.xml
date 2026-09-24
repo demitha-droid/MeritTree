@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Meditation / Bhavana Aura -->
+    <path
+        android:fillColor="#154DB6AC"
+        android:pathData="M60,60m-52,0a52,52 0 1,1 104,0a52,52 0 1,1 -104,0" />
+    <path
+        android:fillColor="#2580CBC4"
+        android:pathData="M60,60m-42,0a42,42 0 1,1 84,0a42,42 0 1,1 -84,0" />
+    <!-- Lotus Throne Base -->
+    <path
+        android:fillColor="#A5D6A7"
+        android:pathData="M32,96 C42,91 78,91 88,96 C78,102 42,102 32,96 Z" />
+    <!-- Meditator Legs (Crossed Padmasana) -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M30,90 C34,80 50,83 60,85 C70,83 86,80 90,90 C84,95 36,95 30,90 Z" />
+    <!-- Torso -->
+    <path
+        android:fillColor="#388E3C"
+        android:pathData="M48,56 C46,68 47,82 60,82 C73,82 74,68 72,56 C68,52 52,52 48,56 Z" />
+    <!-- Meditator Hands in Dhyana Mudra (Lap) -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M52,82 C55,80 65,80 68,82 C65,85 55,85 52,82 Z" />
+    <!-- Neck and Head -->
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M60,42m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
+    <!-- Ushnisha (Spiritual Crown) -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M60,29m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+    <!-- Glowing Halo -->
+    <path
+        android:strokeColor="#FFF59D"
+        android:strokeWidth="2.5"
+        android:pathData="M60,40m-20,0a20,20 0 1,1 40,0a20,20 0 1,1 -40,0" />
+</vector>

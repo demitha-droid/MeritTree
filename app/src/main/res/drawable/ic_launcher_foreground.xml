@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Golden Sacred Bodhi Leaf Silhouette with Drip Tip -->
+    <!-- Center coordinate around (54, 52) -->
+    <!-- Outer Glow Silhouette -->
+    <path
+        android:fillColor="#30FFD54F"
+        android:pathData="M54,22 C55,27 60,34 68,41 C76,48 78,57 74,67 C70,77 60,82 54,82 C48,82 38,77 34,67 C30,57 32,48 40,41 C48,34 53,27 54,22 Z" />
+    <!-- Leaf Body Primary Gold / Lime Amber -->
+    <path
+        android:fillColor="#E5B338"
+        android:pathData="M54,24 C55,28.5 59.5,35 66.5,41.5 C74,48 75.5,56.5 72,65.5 C68.5,74.5 59.5,79.5 54,79.5 C48.5,79.5 39.5,74.5 36,65.5 C32.5,56.5 34,48 41.5,41.5 C48.5,35 53,28.5 54,24 Z" />
+    <!-- Inner Leaf Greenish-Gold Gradient Tone -->
+    <path
+        android:fillColor="#8BC34A"
+        android:pathData="M54,27 C55,31 58.5,36.5 64.5,42.5 C71,48.5 72,55.5 69,63.5 C66,71.5 58.5,76 54,76 C49.5,76 42,71.5 39,63.5 C36,55.5 37,48.5 43.5,42.5 C49.5,36.5 53,31 54,27 Z" />
+    <!-- Petiole / Stem at base -->
+    <path
+        android:strokeColor="#C59B27"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,79.5 Q54,88 57,91" />
+    <!-- Central Main Vein reaching to drip tip -->
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M54,77 L54,25" />
+    <!-- Lateral Veins Right -->
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,70 Q61,66 66,61" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,61 Q63,56 68,49" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,51 Q61,46 64,40" />
+    <!-- Lateral Veins Left -->
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,70 Q47,66 42,61" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,61 Q45,56 40,49" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,51 Q47,46 44,40" />
+</vector>

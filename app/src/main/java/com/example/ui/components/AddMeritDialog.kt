@@ -1,0 +1,427 @@
+package com.example.ui.components
+
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.R
+import com.example.ui.i18n.LocalAppStrings
+import com.example.data.MeritCategory
+import java.io.File
+
+data class PresetArtwork(
+    val id: String,
+    val name: String,
+    val resId: Int
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddMeritDialog(
+    onDismiss: () -> Unit,
+    onSaveImageLocally: (Uri) -> String?,
+    onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?) -> Unit
+) {
+    val strings = LocalAppStrings.current
+    val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    var title by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf(MeritCategory.DANA) }
+    var description by remember { mutableStateOf("") }
+    var dedication by remember { mutableStateOf(if (strings.isSinhala) "සියලු සත්වයෝ සුවපත් වෙත්වා, නිදුක් වෙත්වා, නිරෝගී වෙත්වා." else "May all beings be well, happy, and peaceful.") }
+    var selectedImageUri by remember { mutableStateOf<String?>("preset:ic_merit_dana") }
+    var titleError by remember { mutableStateOf(false) }
+
+    // Preset sacred artworks
+    val presets = remember {
+        listOf(
+            PresetArtwork("preset:ic_merit_dana", "Alms / Dana", R.drawable.ic_merit_dana),
+            PresetArtwork("preset:ic_merit_lotus", "Lotus Offering", R.drawable.ic_merit_lotus),
+            PresetArtwork("preset:ic_merit_meditation", "Meditation", R.drawable.ic_merit_meditation),
+            PresetArtwork("preset:ic_merit_lantern", "Wisdom Lamp", R.drawable.ic_merit_lantern),
+            PresetArtwork("preset:ic_merit_kindness", "Loving Care", R.drawable.ic_merit_kindness),
+            PresetArtwork("preset:ic_merit_water", "Merit Water", R.drawable.ic_merit_water),
+            PresetArtwork("preset:ic_merit_stupa", "Sacred Stupa", R.drawable.ic_merit_stupa),
+            PresetArtwork("preset:ic_merit_bodhi", "Bodhi Leaf", R.drawable.ic_merit_bodhi)
+        )
+    }
+
+    // Android Photo Picker (zero broad storage permission!)
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val localPath = onSaveImageLocally(uri)
+            selectedImageUri = localPath ?: uri.toString()
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = bottomSheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.testTag("add_merit_sheet")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Spa,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.addMeritTitle,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag("close_add_merit_button")
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = strings.cancel)
+                }
+            }
+
+            Text(
+                text = strings.addMeritSubtitle,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+            )
+
+            // Category Selector Chips
+            Text(
+                text = strings.categoryLabel,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MeritCategory.entries.forEach { cat ->
+                    val isSelected = selectedCategory == cat
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            selectedCategory = cat
+                            // Auto-match default preset icon if user hasn't uploaded a photo
+                            if (selectedImageUri?.startsWith("preset:") == true) {
+                                selectedImageUri = when (cat) {
+                                    MeritCategory.DANA -> "preset:ic_merit_dana"
+                                    MeritCategory.SILA -> "preset:ic_merit_lotus"
+                                    MeritCategory.BHAVANA -> "preset:ic_merit_meditation"
+                                    MeritCategory.KINDNESS -> "preset:ic_merit_kindness"
+                                    MeritCategory.TEMPLE -> "preset:ic_merit_stupa"
+                                    MeritCategory.DEDICATION -> "preset:ic_merit_water"
+                                }
+                            }
+                        },
+                        label = {
+                            Text(strings.categoryTitle(cat))
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = cat.leafColor.copy(alpha = 0.2f),
+                            selectedLabelColor = cat.leafColor
+                        ),
+                        modifier = Modifier.testTag("category_chip_${cat.name.lowercase()}")
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Title Field
+            OutlinedTextField(
+                value = title,
+                onValueChange = {
+                    title = it
+                    if (it.isNotBlank()) titleError = false
+                },
+                label = { Text("${strings.deedTitleLabel} *") },
+                placeholder = { Text(strings.deedTitlePlaceholder) },
+                isError = titleError,
+                supportingText = if (titleError) {
+                    { Text(if (strings.isSinhala) "කරුණාකර පින්කමේ නම ඇතුළත් කරන්න" else "Please enter a title for your merit") }
+                } else null,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("merit_title_input")
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ==========================================
+            // IMAGE OF THE POST (Mandated by user)
+            // ==========================================
+            Text(
+                text = if (strings.isSinhala) "පින්කමේ ඡායාරූපය" else "Image of the Post",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = if (strings.isSinhala)
+                    "ඔබේ දුරකථනයෙන් ඡායාරූපයක් තෝරන්න හෝ බෞද්ධ චිත්‍රයක් තෝරන්න."
+                else
+                    "Choose a photograph from your device or select a sacred Buddhist motif.",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // Current Selected Image Preview
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .testTag("add_merit_image_preview")
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    RenderMeritImage(
+                        imageUri = selectedImageUri,
+                        defaultDrawableRes = selectedCategory.defaultDrawableRes,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Button over preview to choose from device photo gallery
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.65f),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(12.dp)
+                            .clickable {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AddPhotoAlternate,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (selectedImageUri != null && !selectedImageUri!!.startsWith("preset:"))
+                                    strings.changePhoto else strings.attachPhoto,
+                                style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Preset Artworks Horizontal Selector
+            Text(
+                text = if (strings.isSinhala) "හෝ පූජනීය චිත්‍රයක් තෝරන්න:" else "Or pick sacred artwork:",
+                style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                presets.forEach { preset ->
+                    val isChosen = selectedImageUri == preset.id
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isChosen) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                width = if (isChosen) 2.dp else 1.dp,
+                                color = if (isChosen) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { selectedImageUri = preset.id }
+                            .padding(6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = preset.resId),
+                            contentDescription = preset.name,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (isChosen) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(16.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Story / Reflection / Note
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text(strings.storyLabel) },
+                placeholder = { Text(strings.storyPlaceholder) },
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("merit_description_input")
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Dedication of Merit (Pattidāna)
+            OutlinedTextField(
+                value = dedication,
+                onValueChange = { dedication = it },
+                label = { Text(strings.dedicationLabel) },
+                placeholder = { Text(strings.dedicationPlaceholder) },
+                minLines = 2,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("merit_dedication_input")
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Submit Button
+            Button(
+                onClick = {
+                    if (title.isBlank()) {
+                        titleError = true
+                        return@Button
+                    }
+                    onAddMerit(
+                        title,
+                        selectedCategory,
+                        description,
+                        dedication,
+                        selectedImageUri
+                    )
+                    onDismiss()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("sprout_leaf_submit_button"),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Spa,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${strings.sproutAction} 🌿",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}

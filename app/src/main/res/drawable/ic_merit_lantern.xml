@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Hanging String -->
+    <path
+        android:strokeColor="#FFCA28"
+        android:strokeWidth="2"
+        android:pathData="M60,10 L60,32" />
+    <!-- Lantern Cap -->
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M44,32 L76,32 L70,38 L50,38 Z" />
+    <!-- Flame Glow -->
+    <path
+        android:fillColor="#25FF9800"
+        android:pathData="M60,62m-40,0a40,40 0 1,1 80,0a40,40 0 1,1 -80,0" />
+    <path
+        android:fillColor="#40FFEB3B"
+        android:pathData="M60,62m-25,0a25,25 0 1,1 50,0a25,25 0 1,1 -50,0" />
+    <!-- Lantern Ribbed Body -->
+    <path
+        android:fillColor="#FF7043"
+        android:pathData="M46,38 C32,54 32,72 46,86 L74,86 C88,72 88,54 74,38 Z" />
+    <!-- Center Core Glow -->
+    <path
+        android:fillColor="#FFF59D"
+        android:pathData="M52,44 C42,56 42,68 52,78 L68,78 C78,68 78,56 68,44 Z" />
+    <!-- Lantern Base -->
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M48,86 L72,86 L68,92 L52,92 Z" />
+    <!-- Tassel -->
+    <path
+        android:strokeColor="#FFD54F"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M60,92 L60,110" />
+    <path
+        android:strokeColor="#FFCA28"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M57,94 L54,108" />
+    <path
+        android:strokeColor="#FFCA28"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M63,94 L66,108" />
+</vector>

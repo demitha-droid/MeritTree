@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <!-- Pouring Water of Blessing (Pattidana) -->
+    <!-- Golden Pitcher / Kendi -->
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M35,32 L60,32 L56,42 L42,42 Z" />
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M38,42 C30,52 30,70 42,78 C54,82 65,72 65,58 C65,48 55,42 45,42 Z" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M30,42 L16,34 L16,40 L26,48 Z" />
+    <!-- Water Stream Sparkling -->
+    <path
+        android:strokeColor="#4FC3F7"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M16,38 C14,52 24,70 34,88 C38,95 44,98 52,100" />
+    <!-- Water Basin / Bowl Below -->
+    <path
+        android:fillColor="#78909C"
+        android:pathData="M40,96 C40,110 80,110 80,96 Z" />
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M60,98m-18,0a18,4 0 1,1 36,0a18,4 0 1,1 -36,0" />
+    <!-- Droplets -->
+    <path
+        android:fillColor="#29B6F6"
+        android:pathData="M24,60m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+    <path
+        android:fillColor="#81D4FA"
+        android:pathData="M32,74m-2.5,0a2.5,2.5 0 1,1 5,0a2.5,2.5 0 1,1 -5,0" />
+    <path
+        android:fillColor="#E1F5FE"
+        android:pathData="M44,88m-2,0a2,2 0 1,1 4,0a2,2 0 1,1 -4,0" />
+</vector>
