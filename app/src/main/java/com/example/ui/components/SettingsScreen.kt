@@ -357,37 +357,6 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Category distribution
-                MeritCategory.entries.forEach { cat ->
-                    val count = allMerits.count { it.category == cat.name }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(cat.leafColor)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = strings.categoryTitle(cat),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                        Text(
-                            text = "$count",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Button(
@@ -429,18 +398,12 @@ fun SettingsScreen(
                 .fillMaxWidth()
                 .padding(vertical = 12.dp)
         ) {
-            MeritTreeEmblem(size = 48.dp, animatedGlow = true)
+            MeritTreeEmblem(size = 48.dp, animatedGlow = false)
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = strings.appName,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = strings.appSubtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(

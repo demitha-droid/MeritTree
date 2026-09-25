@@ -123,14 +123,13 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     val selectedMerit by viewModel.selectedMerit.collectAsStateWithLifecycle()
     val newlySproutedId by viewModel.newlySproutedId.collectAsStateWithLifecycle()
     val revealedLeafIds by viewModel.revealedLeafIds.collectAsStateWithLifecycle()
-    val filterCategory by viewModel.filterCategory.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
     val isBackupLoading by viewModel.isBackupLoading.collectAsStateWithLifecycle()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
-    var currentPickedPhotoUri by remember { mutableStateOf<String?>(null) }
-    var editPickedPhotoUri by remember { mutableStateOf<String?>(null) }
+    var currentPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
+    var editPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
     var showDedicationDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -138,17 +137,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var isCameraForAdd by remember { mutableStateOf(true) }
     var pendingCameraAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
-    // Media Picker (Photos & Videos from Device Gallery)
+    // Media Picker (Multiple Photos & Videos from Device Gallery)
     val mediaPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            val localPath = viewModel.saveMediaLocally(uri)
-            val path = localPath ?: uri.toString()
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 15)
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            val savedPaths = uris.mapNotNull { uri ->
+                viewModel.saveMediaLocally(uri) ?: uri.toString()
+            }
             if (showAddDialog) {
-                currentPickedPhotoUri = path
+                currentPickedMediaUris = (currentPickedMediaUris + savedPaths).distinct()
             } else {
-                editPickedPhotoUri = path
+                editPickedMediaUris = (editPickedMediaUris + savedPaths).distinct()
             }
         }
     }
@@ -177,9 +177,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             val localPath = viewModel.saveBitmapLocally(bitmap)
             if (localPath != null) {
                 if (isCameraForAdd) {
-                    currentPickedPhotoUri = localPath
+                    currentPickedMediaUris = (currentPickedMediaUris + localPath).distinct()
                 } else {
-                    editPickedPhotoUri = localPath
+                    editPickedMediaUris = (editPickedMediaUris + localPath).distinct()
                 }
             }
         }
@@ -192,9 +192,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         if (success && pendingCameraMediaFile != null) {
             val path = pendingCameraMediaFile!!.absolutePath
             if (isCameraForAdd) {
-                currentPickedPhotoUri = path
+                currentPickedMediaUris = (currentPickedMediaUris + path).distinct()
             } else {
-                editPickedPhotoUri = path
+                editPickedMediaUris = (editPickedMediaUris + path).distinct()
             }
         }
     }
@@ -206,9 +206,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         if (success && pendingCameraMediaFile != null) {
             val path = pendingCameraMediaFile!!.absolutePath
             if (isCameraForAdd) {
-                currentPickedPhotoUri = path
+                currentPickedMediaUris = (currentPickedMediaUris + path).distinct()
             } else {
-                editPickedPhotoUri = path
+                editPickedMediaUris = (editPickedMediaUris + path).distinct()
             }
         }
     }
@@ -411,7 +411,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                     onClick = {
                         viewModel.triggerHaptic()
                         targetSlotId = null
-                        currentPickedPhotoUri = null
+                        currentPickedMediaUris = emptyList()
                         showAddDialog = true
                     },
                     icon = {
@@ -440,72 +440,70 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Category Filter Bar (Visible in Tree and Journal tabs)
-            if (activeTab != BodhiTab.SETTINGS) {
-                CategoryFilterBar(
-                    selectedCategory = filterCategory,
-                    onCategorySelected = { viewModel.setFilterCategory(it) }
-                )
-            }
-
-            // Content Area based on Active Tab
+            // Content Area based on Active Tab with buttery smooth Crossfade
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                when (activeTab) {
-                    BodhiTab.TREE -> {
-                        BodhiTreeCanvas(
-                            merits = merits,
-                            newlySproutedId = newlySproutedId,
-                            revealedMeritIds = revealedLeafIds,
-                            onRevealLeaf = { clickedMerit ->
-                                viewModel.triggerHaptic(strong = true)
-                                viewModel.triggerBellChime()
-                                viewModel.revealLeaf(clickedMerit.id)
-                            },
-                            onLeafClick = { clickedMerit ->
-                                viewModel.triggerHaptic()
-                                viewModel.selectMerit(clickedMerit)
-                            },
-                            onEmptyLeafClick = { slotId ->
-                                viewModel.triggerHaptic()
-                                targetSlotId = slotId
-                                currentPickedPhotoUri = null
-                                showAddDialog = true
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    BodhiTab.JOURNAL -> {
-                        MeritJournalList(
-                            merits = allMeritsDescending,
-                            onMeritClick = { clickedMerit ->
-                                viewModel.triggerHaptic()
-                                viewModel.selectMerit(clickedMerit)
-                            }
-                        )
-                    }
-                    BodhiTab.SETTINGS -> {
-                        SettingsScreen(
-                            currentLanguage = appLanguage,
-                            onLanguageSelected = { viewModel.setAppLanguage(it) },
-                            currentTheme = themeMode,
-                            onThemeSelected = { viewModel.setThemeMode(it) },
-                            isSoundEnabled = isSoundEnabled,
-                            onSoundToggle = { viewModel.setSoundEnabled(it) },
-                            isHapticEnabled = isHapticEnabled,
-                            onHapticToggle = { viewModel.setHapticEnabled(it) },
-                            onPlayTestChime = { viewModel.triggerBellChime() },
-                            onOpenDedication = { showDedicationDialog = true },
-                            allMerits = allMerits,
-                            isBackupLoading = isBackupLoading,
-                            onExportBackup = { uri, cb -> viewModel.exportBackup(uri, cb) },
-                            onInspectBackup = { uri, cb -> viewModel.inspectBackup(uri, cb) },
-                            onRestoreBackup = { uri, replaceAll, cb -> viewModel.restoreBackup(uri, replaceAll, cb) },
-                            onShareBackup = { onReady, onError -> viewModel.shareBackup(onReady, onError) }
-                        )
+                androidx.compose.animation.Crossfade(
+                    targetState = activeTab,
+                    animationSpec = androidx.compose.animation.core.tween(130),
+                    label = "main_tab_crossfade"
+                ) { currentTab ->
+                    when (currentTab) {
+                        BodhiTab.TREE -> {
+                            BodhiTreeCanvas(
+                                merits = allMerits,
+                                newlySproutedId = newlySproutedId,
+                                revealedMeritIds = revealedLeafIds,
+                                onRevealLeaf = { clickedMerit ->
+                                    viewModel.triggerHaptic(strong = true)
+                                    viewModel.triggerBellChime()
+                                    viewModel.revealLeaf(clickedMerit.id)
+                                },
+                                onLeafClick = { clickedMerit ->
+                                    viewModel.triggerHaptic()
+                                    viewModel.selectMerit(clickedMerit)
+                                },
+                                onEmptyLeafClick = { slotId ->
+                                    viewModel.triggerHaptic()
+                                    targetSlotId = slotId
+                                    currentPickedMediaUris = emptyList()
+                                    showAddDialog = true
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        BodhiTab.JOURNAL -> {
+                            MeritJournalList(
+                                merits = allMeritsDescending,
+                                onMeritClick = { clickedMerit ->
+                                    viewModel.triggerHaptic()
+                                    viewModel.selectMerit(clickedMerit)
+                                }
+                            )
+                        }
+                        BodhiTab.SETTINGS -> {
+                            SettingsScreen(
+                                currentLanguage = appLanguage,
+                                onLanguageSelected = { viewModel.setAppLanguage(it) },
+                                currentTheme = themeMode,
+                                onThemeSelected = { viewModel.setThemeMode(it) },
+                                isSoundEnabled = isSoundEnabled,
+                                onSoundToggle = { viewModel.setSoundEnabled(it) },
+                                isHapticEnabled = isHapticEnabled,
+                                onHapticToggle = { viewModel.setHapticEnabled(it) },
+                                onPlayTestChime = { viewModel.triggerBellChime() },
+                                onOpenDedication = { showDedicationDialog = true },
+                                allMerits = allMerits,
+                                isBackupLoading = isBackupLoading,
+                                onExportBackup = { uri, cb -> viewModel.exportBackup(uri, cb) },
+                                onInspectBackup = { uri, cb -> viewModel.inspectBackup(uri, cb) },
+                                onRestoreBackup = { uri, replaceAll, cb -> viewModel.restoreBackup(uri, replaceAll, cb) },
+                                onShareBackup = { onReady, onError -> viewModel.shareBackup(onReady, onError) }
+                            )
+                        }
                     }
                 }
             }
@@ -517,7 +515,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         MeritDetailSheet(
             merit = merit,
             onDismiss = {
-                editPickedPhotoUri = null
+                editPickedMediaUris = emptyList()
                 viewModel.selectMerit(null)
             },
             onDelete = {
@@ -532,7 +530,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                     newDedication = newDedication,
                     newImageUri = newImageUri
                 )
-                editPickedPhotoUri = null
+                editPickedMediaUris = emptyList()
             },
             onUploadMedia = {
                 mediaPickerLauncher.launch(
@@ -545,7 +543,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             onCaptureVideo = {
                 launchCameraVideo(isAdd = false)
             },
-            pickedMediaUri = editPickedPhotoUri
+            pickedMediaUris = editPickedMediaUris
         )
     }
 
@@ -561,7 +559,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
 
         AddMeritDialog(
             onDismiss = {
-                currentPickedPhotoUri = null
+                currentPickedMediaUris = emptyList()
                 showAddDialog = false
             },
             onUploadMedia = {
@@ -575,11 +573,11 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             onCaptureVideo = {
                 launchCameraVideo(isAdd = true)
             },
-            pickedMediaUri = currentPickedPhotoUri,
+            pickedMediaUris = currentPickedMediaUris,
             initialCategory = nextVariedCategory,
             onAddMerit = { title, category, description, dedication, imageUri ->
                 viewModel.addMerit(title, category, description, dedication, imageUri, targetSlotId)
-                currentPickedPhotoUri = null
+                currentPickedMediaUris = emptyList()
                 showAddDialog = false
             }
         )

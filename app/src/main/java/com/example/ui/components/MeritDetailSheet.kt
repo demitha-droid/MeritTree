@@ -24,12 +24,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
@@ -71,6 +76,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -89,6 +95,8 @@ import androidx.core.content.FileProvider
 import com.example.R
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import com.example.data.getFirstMediaUri
+import com.example.data.getMediaUris
 import com.example.ui.i18n.LocalAppStrings
 import com.example.ui.sound.MindfulSoundHelper
 import java.io.File
@@ -111,7 +119,8 @@ fun MeritDetailSheet(
     onUploadMedia: () -> Unit,
     onCapturePhoto: () -> Unit,
     onCaptureVideo: () -> Unit,
-    pickedMediaUri: String? = null
+    pickedMediaUri: String? = null,
+    pickedMediaUris: List<String> = emptyList()
 ) {
     val context = LocalContext.current
     val strings = LocalAppStrings.current
@@ -122,6 +131,7 @@ fun MeritDetailSheet(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var rejoiced by remember { mutableStateOf(false) }
     var isFullScreenImage by remember { mutableStateOf(false) }
+    var fullScreenSelectedImage by remember { mutableStateOf<String?>(null) }
     var showCameraChooser by remember { mutableStateOf(false) }
 
     // Edit state fields
@@ -129,7 +139,10 @@ fun MeritDetailSheet(
     var editCategory by remember(merit) { mutableStateOf(MeritCategory.fromString(merit.category)) }
     var editDescription by remember(merit) { mutableStateOf(merit.description) }
     var editDedication by remember(merit) { mutableStateOf(merit.dedication) }
-    var editImageUri by remember(merit) { mutableStateOf(merit.imageUri) }
+    var editMediaList by remember(merit.imageUri) { mutableStateOf(merit.getMediaUris()) }
+    val editImageUri = remember(editMediaList) {
+        if (editMediaList.isEmpty()) null else editMediaList.joinToString("|")
+    }
     var titleError by remember { mutableStateOf(false) }
 
     // Keyboard & focus safety
@@ -139,9 +152,10 @@ fun MeritDetailSheet(
     val isAnyFieldFocused = isTitleFocused || isDescFocused || isDedicationFocused
     val isImeVisible = WindowInsets.isImeVisible
 
-    LaunchedEffect(pickedMediaUri) {
-        if (!pickedMediaUri.isNullOrBlank() && isEditing) {
-            editImageUri = pickedMediaUri
+    LaunchedEffect(pickedMediaUri, pickedMediaUris) {
+        val newItems = (pickedMediaUris + listOfNotNull(pickedMediaUri)).filter { it.isNotBlank() }
+        if (newItems.isNotEmpty() && isEditing) {
+            editMediaList = (editMediaList + newItems).distinct()
         }
     }
 
@@ -193,7 +207,7 @@ fun MeritDetailSheet(
             editCategory,
             editDescription,
             editDedication,
-            editImageUri
+            if (editMediaList.isEmpty()) null else editMediaList.joinToString("|")
         )
         isEditing = false
         focusManager.clearFocus()
@@ -213,7 +227,7 @@ fun MeritDetailSheet(
             editCategory = MeritCategory.fromString(merit.category)
             editDescription = merit.description
             editDedication = merit.dedication
-            editImageUri = merit.imageUri
+            editMediaList = merit.getMediaUris()
             isEditing = false
         } else {
             onDismiss()
@@ -225,7 +239,7 @@ fun MeritDetailSheet(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isEditing) strings.editPost else currentCategory.title,
+                        text = if (isEditing) strings.editPost else merit.title,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         maxLines = 1
                     )
@@ -274,7 +288,7 @@ fun MeritDetailSheet(
                                 editCategory = MeritCategory.fromString(merit.category)
                                 editDescription = merit.description
                                 editDedication = merit.dedication
-                                editImageUri = merit.imageUri
+                                editMediaList = merit.getMediaUris()
                                 isEditing = true
                             },
                             modifier = Modifier.testTag("edit_merit_icon_button")
@@ -290,8 +304,7 @@ fun MeritDetailSheet(
                         IconButton(
                             onClick = {
                                 val shareText = buildString {
-                                    append("🌿 Bodhi Merit: ${merit.title}\n")
-                                    append("Category: ${currentCategory.paliName} (${currentCategory.title})\n\n")
+                                    append("🌿 Bodhi Merit: ${merit.title}\n\n")
                                     if (merit.description.isNotBlank()) {
                                         append("${merit.description}\n\n")
                                     }
@@ -354,35 +367,6 @@ fun MeritDetailSheet(
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Category Selector Chips
-                Text(
-                    text = strings.categoryLabel,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MeritCategory.entries.forEach { cat ->
-                        val isSelected = editCategory == cat
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { editCategory = cat },
-                            label = { Text(strings.categoryTitle(cat)) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = cat.leafColor.copy(alpha = 0.2f),
-                                selectedLabelColor = cat.leafColor
-                            ),
-                            modifier = Modifier.testTag("edit_category_chip_${cat.name.lowercase()}")
-                        )
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Title TextField
@@ -469,55 +453,138 @@ fun MeritDetailSheet(
                     }
                 }
 
-                // Media Preview Card (ONLY shown if media is actually attached)
-                if (!editImageUri.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                // Media Preview Row (ONLY shown if media is actually attached)
+                if (editMediaList.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    val isEditVideo = remember(editImageUri) {
-                        val lower = editImageUri!!.lowercase()
-                        lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
-                                lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${editMediaList.size} ${if (editMediaList.size == 1) "item attached" else "items attached"}",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                        TextButton(onClick = { editMediaList = emptyList() }) {
+                            Text(strings.removeMedia, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
 
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .testTag("edit_merit_image_preview")
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            if (isEditVideo) {
-                                InAppVideoPlayer(
-                                    videoUriOrPath = editImageUri!!,
-                                    modifier = Modifier.fillMaxSize(),
-                                    autoPlay = false
-                                )
-                            } else {
-                                RenderMeritImage(
-                                    imageUri = editImageUri,
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                        itemsIndexed(editMediaList) { index, uri ->
+                            val isEditVideo = remember(uri) {
+                                val lower = uri.lowercase()
+                                lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                        lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
                             }
 
-                            // Detach / Clear Media Button
-                            Surface(
-                                color = Color.Black.copy(alpha = 0.65f),
-                                shape = CircleShape,
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(10.dp)
-                                    .clickable { editImageUri = null }
+                                    .width(160.dp)
+                                    .height(180.dp)
+                                    .testTag("edit_merit_media_item_$index")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = strings.removeMedia,
-                                    tint = Color.White,
-                                    modifier = Modifier
-                                        .padding(8.dp)
-                                        .size(18.dp)
-                                )
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    if (isEditVideo) {
+                                        VideoThumbnailView(
+                                            videoUriOrPath = uri,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        RenderMeritImage(
+                                            imageUri = uri,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+
+                                    // Remove/Clear button for this item
+                                    Surface(
+                                        color = Color.Black.copy(alpha = 0.70f),
+                                        shape = CircleShape,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .size(28.dp)
+                                            .clickable {
+                                                editMediaList = editMediaList.filterIndexed { i, _ -> i != index }
+                                            }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Remove",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // Index badge (#1, #2, ...)
+                                    Surface(
+                                        color = Color.Black.copy(alpha = 0.65f),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .padding(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "#${index + 1}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // "+ Add More" card
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(180.dp)
+                                    .clickable { onUploadMedia() }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add More",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = if (strings.isSinhala) "තව එකතු කරන්න" else "Add More",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        ),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     }
@@ -568,7 +635,7 @@ fun MeritDetailSheet(
                             editCategory = MeritCategory.fromString(merit.category)
                             editDescription = merit.description
                             editDedication = merit.dedication
-                            editImageUri = merit.imageUri
+                            editMediaList = merit.getMediaUris()
                             isEditing = false
                         },
                         modifier = Modifier
@@ -604,47 +671,134 @@ fun MeritDetailSheet(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                // 1. Prominent Media (ONLY IF MEDIA EXISTS! No default image fallback)
-                if (!merit.imageUri.isNullOrBlank()) {
-                    if (isVideo) {
-                        InAppVideoPlayer(
-                            videoUriOrPath = merit.imageUri!!,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp),
-                            autoPlay = false,
-                            allowFullScreenToggle = true
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(270.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                .clickable { isFullScreenImage = true }
-                                .testTag("merit_post_image_card")
-                        ) {
-                            RenderMeritImage(
-                                imageUri = merit.imageUri,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-
-                            // Bottom info badge
-                            Surface(
-                                color = Color.Black.copy(alpha = 0.60f),
-                                shape = RoundedCornerShape(12.dp),
+                // 1. Prominent Media (Supports multiple photos and videos)
+                val mediaUris = remember(merit.imageUri) { merit.getMediaUris() }
+                if (mediaUris.isNotEmpty()) {
+                    if (mediaUris.size == 1) {
+                        val singleUri = mediaUris.first()
+                        val isSingleVideo = remember(singleUri) {
+                            val lower = singleUri.lowercase()
+                            lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                    lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                        }
+                        if (isSingleVideo) {
+                            InAppVideoPlayer(
+                                videoUriOrPath = singleUri,
                                 modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(12.dp)
+                                    .fillMaxWidth()
+                                    .height(270.dp),
+                                autoPlay = false,
+                                allowFullScreenToggle = true
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(280.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable {
+                                        fullScreenSelectedImage = singleUri
+                                        isFullScreenImage = true
+                                    }
+                                    .testTag("merit_post_image_card")
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                RenderMeritImage(
+                                    imageUri = singleUri,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                // Bottom info badge
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.60f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(12.dp)
                                 ) {
                                     Text(
                                         text = "Tap to view full photo",
-                                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
+                                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Multi-media Carousel
+                        val pagerState = rememberPagerState(pageCount = { mediaUris.size })
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(290.dp)
+                                .background(Color.Black)
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize()
+                            ) { page ->
+                                val uri = mediaUris[page]
+                                val isPageVideo = remember(uri) {
+                                    val lower = uri.lowercase()
+                                    lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                            lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                                }
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    if (isPageVideo) {
+                                        InAppVideoPlayer(
+                                            videoUriOrPath = uri,
+                                            modifier = Modifier.fillMaxSize(),
+                                            autoPlay = false,
+                                            allowFullScreenToggle = true
+                                        )
+                                    } else {
+                                        RenderMeritImage(
+                                            imageUri = uri,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .clickable {
+                                                    fullScreenSelectedImage = uri
+                                                    isFullScreenImage = true
+                                                }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Counter pill overlay (Top-Right)
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.Black.copy(alpha = 0.65f),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "${pagerState.currentPage + 1} / ${mediaUris.size}",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            // Dots indicator (Bottom Center)
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                repeat(mediaUris.size) { iteration ->
+                                    val isSelected = pagerState.currentPage == iteration
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isSelected) 8.dp else 6.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isSelected) Color.White else Color.White.copy(alpha = 0.45f)
+                                            )
                                     )
                                 }
                             }
@@ -658,33 +812,6 @@ fun MeritDetailSheet(
                         .fillMaxWidth()
                         .padding(20.dp)
                 ) {
-                    // Category Badge
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = currentCategory.leafColor.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, currentCategory.leafColor.copy(alpha = 0.5f)),
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Spa,
-                                contentDescription = null,
-                                tint = currentCategory.leafColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "${currentCategory.paliName} • ${strings.categoryTitle(currentCategory)}",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = currentCategory.leafColor
-                                )
-                            )
-                        }
-                    }
                     // Date & Time
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -825,7 +952,7 @@ fun MeritDetailSheet(
                                 editCategory = MeritCategory.fromString(merit.category)
                                 editDescription = merit.description
                                 editDedication = merit.dedication
-                                editImageUri = merit.imageUri
+                                editMediaList = merit.getMediaUris()
                                 isEditing = true
                             },
                             colors = ButtonDefaults.buttonColors(
@@ -929,7 +1056,7 @@ fun MeritDetailSheet(
                     .background(Color.Black)
             ) {
                 RenderMeritImage(
-                    imageUri = if (isEditing) editImageUri else merit.imageUri,
+                    imageUri = fullScreenSelectedImage ?: if (isEditing) editMediaList.firstOrNull() else merit.getFirstMediaUri(),
                     defaultDrawableRes = currentCategory.defaultDrawableRes,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize()

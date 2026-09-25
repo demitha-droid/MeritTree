@@ -3,6 +3,7 @@ package com.example.data.backup
 import android.content.Context
 import com.example.data.MeritEntity
 import com.example.data.MeritRepository
+import com.example.data.getMediaUris
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -60,22 +61,30 @@ class MeritBackupManager(
 
                     val imageUri = merit.imageUri
                     if (imageUri != null) {
-                        if (imageUri.startsWith("preset:")) {
-                            meritObj.put("presetUri", imageUri)
-                        } else {
-                            val imgFile = File(imageUri)
-                            if (imgFile.exists() && imgFile.canRead()) {
-                                val entryName = "media/img_${merit.id}_${imgFile.name}"
-                                zipOut.putNextEntry(ZipEntry(entryName))
-                                FileInputStream(imgFile).use { fileIn ->
-                                    fileIn.copyTo(zipOut)
-                                }
-                                zipOut.closeEntry()
-                                meritObj.put("mediaEntryName", entryName)
-                                mediaCount++
+                        val uris = merit.getMediaUris()
+                        val mediaEntryNames = org.json.JSONArray()
+                        for (singleUri in uris) {
+                            if (singleUri.startsWith("preset:")) {
+                                meritObj.put("presetUri", singleUri)
                             } else {
-                                meritObj.put("originalUri", imageUri)
+                                val imgFile = File(singleUri)
+                                if (imgFile.exists() && imgFile.canRead()) {
+                                    val entryName = "media/img_${merit.id}_${System.currentTimeMillis()}_${imgFile.name}"
+                                    zipOut.putNextEntry(ZipEntry(entryName))
+                                    FileInputStream(imgFile).use { fileIn ->
+                                        fileIn.copyTo(zipOut)
+                                    }
+                                    zipOut.closeEntry()
+                                    mediaEntryNames.put(entryName)
+                                    mediaCount++
+                                }
                             }
+                        }
+                        if (mediaEntryNames.length() > 0) {
+                            meritObj.put("mediaEntryNames", mediaEntryNames)
+                            meritObj.put("mediaEntryName", mediaEntryNames.getString(0))
+                        } else if (!meritObj.has("presetUri")) {
+                            meritObj.put("originalUri", imageUri)
                         }
                     }
 
@@ -218,8 +227,16 @@ class MeritBackupManager(
                     freeSlot
                 }
 
-                // Resolve imageUri
+                // Resolve imageUri (supports multiple media entries)
                 val imageUri = when {
+                    item.has("mediaEntryNames") -> {
+                        val arr = item.getJSONArray("mediaEntryNames")
+                        val paths = mutableListOf<String>()
+                        for (idx in 0 until arr.length()) {
+                            mediaPathMap[arr.getString(idx)]?.let { paths.add(it) }
+                        }
+                        if (paths.isNotEmpty()) paths.joinToString("|") else null
+                    }
                     item.has("presetUri") -> item.getString("presetUri")
                     item.has("mediaEntryName") -> mediaPathMap[item.getString("mediaEntryName")]
                     item.has("originalUri") -> item.getString("originalUri")

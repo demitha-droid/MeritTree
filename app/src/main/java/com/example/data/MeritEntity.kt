@@ -19,3 +19,17 @@ data class MeritEntity(
     val leafOffsetRatio: Float = 0.5f,
     val leafAngleOffset: Float = 0f
 )
+
+fun MeritEntity.getMediaUris(): List<String> {
+    if (imageUri.isNullOrBlank()) return emptyList()
+    return imageUri.split("|").map { it.trim() }.filter { it.isNotBlank() }
+}
+
+fun MeritEntity.getFirstMediaUri(): String? {
+    return getMediaUris().firstOrNull()
+}
+
+fun List<String>.toMediaUriString(): String? {
+    val filtered = this.map { it.trim() }.filter { it.isNotBlank() }
+    return if (filtered.isEmpty()) null else filtered.joinToString("|")
+}

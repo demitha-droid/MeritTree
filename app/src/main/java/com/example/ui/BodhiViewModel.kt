@@ -83,9 +83,7 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     private val _activeTab = MutableStateFlow(BodhiTab.TREE)
     val activeTab: StateFlow<BodhiTab> = _activeTab.asStateFlow()
 
-    val filteredMerits: StateFlow<List<MeritEntity>> = combine(allMerits, _filterCategory) { merits, category ->
-        if (category == null) merits else merits.filter { it.category == category.name }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val filteredMerits: StateFlow<List<MeritEntity>> = allMerits
 
     fun setThemeMode(mode: AppThemeMode) {
         _themeMode.value = mode

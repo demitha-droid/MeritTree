@@ -117,13 +117,6 @@ fun MeritTreeTopBarLogo(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag("merit_tree_logo_title")
             )
-            Text(
-                text = strings.leavesInBloom(activeLeavesCount),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
         }
     }
 }

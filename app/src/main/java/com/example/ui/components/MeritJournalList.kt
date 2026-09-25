@@ -17,8 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Icon
@@ -29,8 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -40,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import com.example.data.getMediaUris
 import com.example.ui.i18n.LocalAppStrings
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -111,7 +118,6 @@ fun MeritJournalCard(
     onClick: () -> Unit
 ) {
     val strings = LocalAppStrings.current
-    val category = MeritCategory.fromString(merit.category)
     val formattedDate = remember(merit.timestamp) {
         val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy • h:mm a", Locale.getDefault())
         sdf.format(Date(merit.timestamp))
@@ -213,62 +219,129 @@ fun MeritJournalCard(
                         modifier = Modifier.testTag("merit_description_${merit.id}")
                     )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 4. CATEGORY LABEL
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = category.leafColor.copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, category.leafColor.copy(alpha = 0.35f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Spa,
-                            contentDescription = null,
-                            tint = category.leafColor,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "${category.paliName} • ${strings.categoryTitle(category)}",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = category.leafColor
-                            )
-                        )
-                    }
-                }
             }
 
-            // 5. UPLOADED IMAGE OR VIDEO (ONLY IF USER ATTACHED MEDIA!)
+            // 4. UPLOADED MEDIA (Supports multiple images and videos)
             // Spans edge-to-edge full width from left to right edge
-            if (!merit.imageUri.isNullOrBlank()) {
+            val mediaUris = remember(merit.imageUri) { merit.getMediaUris() }
+            if (mediaUris.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(280.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .testTag("merit_big_image_${merit.id}")
-                ) {
-                    if (isVideo) {
-                        // High-performance video thumbnail with play badge (zero lag in LazyColumn)
-                        VideoThumbnailView(
-                            videoUriOrPath = merit.imageUri,
-                            modifier = Modifier.fillMaxSize(),
-                            onPlayClick = onClick
-                        )
-                    } else {
-                        RenderMeritImage(
-                            imageUri = merit.imageUri,
-                            contentScale = ContentScale.Crop,
+                if (mediaUris.size == 1) {
+                    val singleUri = mediaUris.first()
+                    val isSingleVideo = remember(singleUri) {
+                        val lower = singleUri.lowercase()
+                        lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                            .testTag("merit_big_image_${merit.id}")
+                    ) {
+                        if (isSingleVideo) {
+                            VideoThumbnailView(
+                                videoUriOrPath = singleUri,
+                                modifier = Modifier.fillMaxSize(),
+                                onPlayClick = onClick
+                            )
+                        } else {
+                            RenderMeritImage(
+                                imageUri = singleUri,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                } else {
+                    // Multi-media carousel in feed
+                    val pagerState = rememberPagerState(pageCount = { mediaUris.size })
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                            .background(Color.Black)
+                            .testTag("merit_big_image_${merit.id}")
+                    ) {
+                        HorizontalPager(
+                            state = pagerState,
                             modifier = Modifier.fillMaxSize()
-                        )
+                        ) { page ->
+                            val uri = mediaUris[page]
+                            val isPageVideo = remember(uri) {
+                                val lower = uri.lowercase()
+                                lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                        lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                            }
+
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                if (isPageVideo) {
+                                    VideoThumbnailView(
+                                        videoUriOrPath = uri,
+                                        modifier = Modifier.fillMaxSize(),
+                                        onPlayClick = onClick
+                                    )
+                                } else {
+                                    RenderMeritImage(
+                                        imageUri = uri,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+
+                        // Counter pill overlay (Top-Right)
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color.Black.copy(alpha = 0.65f),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Collections,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "${pagerState.currentPage + 1}/${mediaUris.size}",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+
+                        // Dots indicator (Bottom Center)
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(bottom = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            repeat(mediaUris.size) { iteration ->
+                                val isSelected = pagerState.currentPage == iteration
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (isSelected) 8.dp else 6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isSelected) Color.White else Color.White.copy(alpha = 0.45f)
+                                        )
+                                )
+                            }
+                        }
                     }
                 }
             }

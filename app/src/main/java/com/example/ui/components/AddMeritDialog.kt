@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -20,11 +21,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
@@ -82,7 +86,8 @@ fun AddMeritDialog(
     onUploadMedia: () -> Unit,
     onCapturePhoto: () -> Unit,
     onCaptureVideo: () -> Unit,
-    pickedMediaUri: String?,
+    pickedMediaUri: String? = null,
+    pickedMediaUris: List<String> = emptyList(),
     initialCategory: MeritCategory = MeritCategory.DANA,
     onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?) -> Unit
 ) {
@@ -99,7 +104,7 @@ fun AddMeritDialog(
             else "May all beings be well, happy, and peaceful."
         )
     }
-    var selectedImageUri by remember { mutableStateOf<String?>(null) }
+    var mediaList by remember { mutableStateOf<List<String>>(emptyList()) }
     var titleError by remember { mutableStateOf(false) }
     var showCameraChooser by remember { mutableStateOf(false) }
 
@@ -124,9 +129,10 @@ fun AddMeritDialog(
         }
     }
 
-    LaunchedEffect(pickedMediaUri) {
-        if (!pickedMediaUri.isNullOrBlank()) {
-            selectedImageUri = pickedMediaUri
+    LaunchedEffect(pickedMediaUri, pickedMediaUris) {
+        val newItems = (pickedMediaUris + listOfNotNull(pickedMediaUri)).filter { it.isNotBlank() }
+        if (newItems.isNotEmpty()) {
+            mediaList = (mediaList + newItems).distinct()
         }
     }
 
@@ -140,7 +146,7 @@ fun AddMeritDialog(
             selectedCategory,
             description,
             dedication,
-            selectedImageUri
+            if (mediaList.isEmpty()) null else mediaList.joinToString("|")
         )
         onDismiss()
     }
@@ -218,39 +224,8 @@ fun AddMeritDialog(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                modifier = Modifier.padding(bottom = 14.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
-
-            // Category Selector Chips
-            Text(
-                text = strings.categoryLabel,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                MeritCategory.entries.forEach { cat ->
-                    val isSelected = selectedCategory == cat
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedCategory = cat },
-                        label = {
-                            Text(strings.categoryTitle(cat))
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = cat.leafColor.copy(alpha = 0.2f),
-                            selectedLabelColor = cat.leafColor
-                        ),
-                        modifier = Modifier.testTag("category_chip_${cat.name.lowercase()}")
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Title Field (Instant focus, zero lag!)
             OutlinedTextField(
@@ -354,54 +329,139 @@ fun AddMeritDialog(
             }
 
             // Only display media preview if media has actually been uploaded or captured
-            if (!selectedImageUri.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
+            if (mediaList.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(14.dp))
 
-                val isVideo = remember(selectedImageUri) {
-                    val lower = selectedImageUri!!.lowercase()
-                    lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
-                            lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${mediaList.size} ${if (mediaList.size == 1) "item attached" else "items attached"}",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    TextButton(onClick = { mediaList = emptyList() }) {
+                        Text(strings.removeMedia, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
 
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .testTag("add_merit_image_preview")
+                Spacer(modifier = Modifier.height(6.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        if (isVideo) {
-                            InAppVideoPlayer(
-                                videoUriOrPath = selectedImageUri!!,
-                                modifier = Modifier.fillMaxSize(),
-                                autoPlay = false
-                            )
-                        } else {
-                            RenderMeritImage(
-                                imageUri = selectedImageUri,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                    itemsIndexed(mediaList) { index, uri ->
+                        val isVideo = remember(uri) {
+                            val lower = uri.lowercase()
+                            lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                    lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
                         }
 
-                        // Remove/Clear button to detach media
-                        Surface(
-                            color = Color.Black.copy(alpha = 0.65f),
-                            shape = CircleShape,
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ),
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(10.dp)
-                                .clickable { selectedImageUri = null }
+                                .width(160.dp)
+                                .height(180.dp)
+                                .testTag("add_merit_media_item_$index")
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = strings.removeMedia,
-                                tint = Color.White,
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(18.dp)
-                            )
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                if (isVideo) {
+                                    VideoThumbnailView(
+                                        videoUriOrPath = uri,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    RenderMeritImage(
+                                        imageUri = uri,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+
+                                // Delete (X) button for this item
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.70f),
+                                    shape = CircleShape,
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp)
+                                        .size(28.dp)
+                                        .clickable {
+                                            mediaList = mediaList.filterIndexed { i, _ -> i != index }
+                                        }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+
+                                // Index badge (#1, #2, ...)
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.65f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(8.dp)
+                                ) {
+                                    Text(
+                                        text = "#${index + 1}",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // "+ Add More" card
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                            modifier = Modifier
+                                .width(110.dp)
+                                .height(180.dp)
+                                .clickable { onUploadMedia() }
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Add More",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = if (strings.isSinhala) "තව එකතු කරන්න" else "Add More",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    ),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
