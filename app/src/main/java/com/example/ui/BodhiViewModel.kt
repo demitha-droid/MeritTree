@@ -136,7 +136,8 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Copies an external image Uri into internal app filesDir so it remains permanently accessible.
+     * Copies and downsamples an external image Uri into internal app filesDir so it remains permanently accessible
+     * with low memory footprint and instant rendering.
      */
     fun saveImageLocally(sourceUri: Uri): String? {
         return try {
@@ -145,12 +146,43 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
             val fileName = "merit_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.jpg"
             val destFile = File(imagesDir, fileName)
 
-            context.contentResolver.openInputStream(sourceUri)?.use { input ->
-                FileOutputStream(destFile).use { output ->
-                    input.copyTo(output)
-                }
+            val boundsOptions = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
             }
-            destFile.absolutePath
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                android.graphics.BitmapFactory.decodeStream(input, null, boundsOptions)
+            }
+
+            var inSampleSize = 1
+            val maxDim = 1600
+            while (boundsOptions.outWidth / (inSampleSize * 2) >= maxDim ||
+                boundsOptions.outHeight / (inSampleSize * 2) >= maxDim
+            ) {
+                inSampleSize *= 2
+            }
+
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+            }
+
+            val bitmap = context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                android.graphics.BitmapFactory.decodeStream(input, null, decodeOptions)
+            }
+
+            if (bitmap != null) {
+                FileOutputStream(destFile).use { out ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                }
+                bitmap.recycle()
+                destFile.absolutePath
+            } else {
+                context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                destFile.absolutePath
+            }
         } catch (_: Exception) {
             null
         }

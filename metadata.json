@@ -1,5 +1,5 @@
 {
-  "name": "Bodhi Merit",
+  "name": "Merit Tree",
   "description": "A mindful merit recording app with a sacred Bodhi tree that sprouts leaves for your good deeds and visualizes your memories.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

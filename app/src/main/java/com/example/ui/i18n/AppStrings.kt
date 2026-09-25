@@ -8,13 +8,15 @@ class AppStrings(val language: AppLanguage) {
     val isSinhala = language == AppLanguage.SINHALA
 
     // App Bar & General
-    val appName = if (isSinhala) "බෝධි පින්කම්" else "Bodhi Merit"
+    val appName = if (isSinhala) "පුණ්ය වෘක්ෂය" else "Merit Tree"
+    val treeName = if (isSinhala) "පුණ්ය වෘක්ෂය" else "Merit Tree"
+    val appSubtitle = if (isSinhala) "බෝධි පින්කම් සටහන" else "Sacred Bodhi Journal"
     fun leavesInBloom(count: Int) = if (isSinhala) "පින් පත් $count ක් පිපී ඇත" else "$count sacred leaves in bloom"
     val mindfulBell = if (isSinhala) "ඝණ්ඨා නාදය" else "Mindful Bell"
     val shareMerit = if (isSinhala) "පින් බෙදාගන්න" else "Share Merit"
 
     // Navigation Tabs
-    val navTree = if (isSinhala) "බෝධි වෘක්ෂය" else "Bodhi Tree"
+    val navTree = if (isSinhala) "පුණ්ය වෘක්ෂය" else "Merit Tree"
     val navJournal = if (isSinhala) "පින් පොත" else "Journal"
     val navSettings = if (isSinhala) "සැකසුම්" else "Settings"
 

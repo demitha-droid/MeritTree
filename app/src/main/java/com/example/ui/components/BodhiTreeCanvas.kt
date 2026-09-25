@@ -1,29 +1,21 @@
 package com.example.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -31,7 +23,9 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LayoutDirection
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
 import kotlin.math.hypot
@@ -68,40 +62,18 @@ fun BodhiTreeCanvas(
     onEmptyLeafClick: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Only animate when there's an active newly sprouted leaf to highlight
-    val newlySproutedPulse = if (newlySproutedId != null) {
-        val transition = rememberInfiniteTransition(label = "new_leaf_pulse")
-        val pulse by transition.animateFloat(
-            initialValue = 0.6f,
-            targetValue = 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "sprout_pulse"
-        )
-        pulse
-    } else {
-        1.0f
-    }
+    val density = LocalDensity.current
 
-    var canvasSize by remember { mutableStateOf(Size.Zero) }
-
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .testTag("bodhi_tree_canvas_container")
             .fillMaxSize()
-            .onSizeChanged { size ->
-                if (size.width > 0 && size.height > 0) {
-                    canvasSize = Size(size.width.toFloat(), size.height.toFloat())
-                }
-            }
     ) {
-        val width = canvasSize.width
-        val height = canvasSize.height
+        val width = constraints.maxWidth.toFloat()
+        val height = constraints.maxHeight.toFloat()
 
         if (width <= 0f || height <= 0f) {
-            return@Box
+            return@BoxWithConstraints
         }
 
         // 1. Build and cache all drawing artifacts on dimension change
@@ -201,6 +173,71 @@ fun BodhiTreeCanvas(
             merits.associateBy { it.branchIndex }
         }
 
+        // 2. Pre-render the entire static tree wood & all dormant leaves into a hardware bitmap
+        val cachedStaticTreeBitmap = remember(width, height, renderCache) {
+            try {
+                if (width <= 0f || height <= 0f) return@remember null
+                val bitmap = ImageBitmap(width.toInt(), height.toInt())
+                val canvas = androidx.compose.ui.graphics.Canvas(bitmap)
+                val drawScope = CanvasDrawScope()
+                drawScope.draw(
+                    density = density,
+                    layoutDirection = LayoutDirection.Ltr,
+                    canvas = canvas,
+                    size = Size(width, height)
+                ) {
+                    // 1. Serene Golden Sun Halo
+                    drawCircle(
+                        brush = renderCache.haloBrush,
+                        center = renderCache.haloCenter,
+                        radius = renderCache.haloRadius
+                    )
+
+                    // 2. Soft Ground Contact Shadow & Botanical Soil Stipples
+                    drawOval(
+                        brush = renderCache.shadowBrush,
+                        topLeft = renderCache.shadowTopLeft,
+                        size = renderCache.shadowSize
+                    )
+
+                    val stippleColor = Color(0x384A251B)
+                    val stipples = renderCache.rootStipples
+                    for (i in stipples.indices) {
+                        drawCircle(
+                            color = stippleColor,
+                            radius = 1.6f,
+                            center = stipples[i]
+                        )
+                    }
+
+                    // 3. Render Hand-Carved Sacred Bodhi Wood
+                    drawCarvedBodhiTreeWood(renderCache)
+
+                    // 4. Render All Dormant Bodhi Leaves onto the static background
+                    val slots = BodhiTreeGeometry.LEAF_SLOTS
+                    val leafBaseScale = (width / 390f) * 1.05f
+
+                    for (i in slots.indices) {
+                        val slot = slots[i]
+                        val leafX = slot.xRatio * width
+                        val leafY = slot.yRatio * height
+                        val scale = leafBaseScale * slot.scaleFactor
+
+                        translate(left = leafX, top = leafY) {
+                            rotate(degrees = slot.leafAngle, pivot = Offset.Zero) {
+                                scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
+                                    renderDormantLeaf(cache = renderCache)
+                                }
+                            }
+                        }
+                    }
+                }
+                bitmap
+            } catch (_: Throwable) {
+                null
+            }
+        }
+
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -224,40 +261,49 @@ fun BodhiTreeCanvas(
                     }
                 }
         ) {
-            // 1. Serene Golden Sun Halo
-            drawCircle(
-                brush = renderCache.haloBrush,
-                center = renderCache.haloCenter,
-                radius = renderCache.haloRadius
-            )
-
-            // 2. Soft Ground Contact Shadow & Botanical Soil Stipples
-            drawOval(
-                brush = renderCache.shadowBrush,
-                topLeft = renderCache.shadowTopLeft,
-                size = renderCache.shadowSize
-            )
-
-            val stippleColor = Color(0x384A251B)
-            val stipples = renderCache.rootStipples
-            for (i in stipples.indices) {
+            // Draw pre-rendered static tree + dormant leaves in 1 instantaneous call, or fallback
+            if (cachedStaticTreeBitmap != null) {
+                drawImage(image = cachedStaticTreeBitmap)
+            } else {
                 drawCircle(
-                    color = stippleColor,
-                    radius = 1.6f,
-                    center = stipples[i]
+                    brush = renderCache.haloBrush,
+                    center = renderCache.haloCenter,
+                    radius = renderCache.haloRadius
                 )
+                drawOval(
+                    brush = renderCache.shadowBrush,
+                    topLeft = renderCache.shadowTopLeft,
+                    size = renderCache.shadowSize
+                )
+                val stippleColor = Color(0x384A251B)
+                val stipples = renderCache.rootStipples
+                for (i in stipples.indices) {
+                    drawCircle(color = stippleColor, radius = 1.6f, center = stipples[i])
+                }
+                drawCarvedBodhiTreeWood(renderCache)
+                val slots = BodhiTreeGeometry.LEAF_SLOTS
+                val leafBaseScale = (width / 390f) * 1.05f
+                for (i in slots.indices) {
+                    val slot = slots[i]
+                    val leafX = slot.xRatio * width
+                    val leafY = slot.yRatio * height
+                    val scale = leafBaseScale * slot.scaleFactor
+                    translate(left = leafX, top = leafY) {
+                        rotate(degrees = slot.leafAngle, pivot = Offset.Zero) {
+                            scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
+                                renderDormantLeaf(cache = renderCache)
+                            }
+                        }
+                    }
+                }
             }
 
-            // 3. Render Hand-Carved Sacred Bodhi Wood with Pre-Cached Paths and Brushes
-            drawCarvedBodhiTreeWood(renderCache)
-
-            // 4. Render All Bodhi Leaves
+            // Only render active/awakened leaves on top
             val slots = BodhiTreeGeometry.LEAF_SLOTS
             val leafBaseScale = (width / 390f) * 1.05f
 
-            for (i in slots.indices) {
-                val slot = slots[i]
-                val merit = meritsBySlot[slot.id]
+            for (merit in merits) {
+                val slot = slots.getOrNull(merit.branchIndex) ?: continue
                 val leafX = slot.xRatio * width
                 val leafY = slot.yRatio * height
                 val scale = leafBaseScale * slot.scaleFactor
@@ -265,19 +311,11 @@ fun BodhiTreeCanvas(
                 translate(left = leafX, top = leafY) {
                     rotate(degrees = slot.leafAngle, pivot = Offset.Zero) {
                         scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
-                            if (merit != null) {
-                                // Awakened Leaf (Full inner skeleton veins, glowing category jewel)
-                                val isNewlySprouted = merit.id == newlySproutedId
-                                renderAwakenedLeaf(
-                                    merit = merit,
-                                    cache = renderCache,
-                                    isNewlySprouted = isNewlySprouted,
-                                    pulseAlpha = newlySproutedPulse
-                                )
-                            } else {
-                                // Dormant Leaf (Plain copper silhouette without inner veins)
-                                renderDormantLeaf(cache = renderCache)
-                            }
+                            renderAwakenedLeaf(
+                                merit = merit,
+                                cache = renderCache,
+                                isNewlySprouted = merit.id == newlySproutedId
+                            )
                         }
                     }
                 }
@@ -419,15 +457,19 @@ private fun DrawScope.renderDormantLeaf(cache: BodhiTreeRenderCache) {
 private fun DrawScope.renderAwakenedLeaf(
     merit: MeritEntity,
     cache: BodhiTreeRenderCache,
-    isNewlySprouted: Boolean,
-    pulseAlpha: Float
+    isNewlySprouted: Boolean
 ) {
     val category = MeritCategory.fromString(merit.category)
 
     if (isNewlySprouted) {
         drawCircle(
-            color = Color(0xFFFFD54F).copy(alpha = 0.6f * pulseAlpha),
-            radius = 36f,
+            color = Color(0xFFFFD54F).copy(alpha = 0.55f),
+            radius = 38f,
+            center = Offset.Zero
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.75f),
+            radius = 28f,
             center = Offset.Zero
         )
     }

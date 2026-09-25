@@ -76,6 +76,7 @@ import com.example.ui.components.BodhiTreeCanvas
 import com.example.ui.components.DedicationDialog
 import com.example.ui.components.MeritDetailSheet
 import com.example.ui.components.MeritJournalList
+import com.example.ui.components.MeritTreeTopBarLogo
 import com.example.ui.components.SettingsScreen
 import com.example.ui.i18n.AppStrings
 import com.example.ui.i18n.LocalAppStrings
@@ -147,36 +148,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Spa,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = strings.appName,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = strings.leavesInBloom(allMerits.size),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                        }
-                    }
+                    MeritTreeTopBarLogo(activeLeavesCount = allMerits.size)
                 },
                 actions = {
                     // Mindful Bell Chime

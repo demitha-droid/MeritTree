@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Golden Luminous Halo Ring / Solar Aura -->
+    <path
+        android:fillColor="#15FFD54F"
+        android:pathData="M60,60 m -50,0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0" />
+
+    <path
+        android:strokeColor="#50FFD54F"
+        android:strokeWidth="1.5"
+        android:pathData="M60,60 m -46,0 a 46,46 0 1,0 92,0 a 46,46 0 1,0 -92,0" />
+
+    <path
+        android:strokeColor="#30E5B338"
+        android:strokeWidth="1.0"
+        android:pathData="M60,60 m -42,0 a 42,42 0 1,0 84,0 a 42,42 0 1,0 -84,0" />
+
+    <!-- Lotus Throne Pedestal / Roots Base -->
+    <path
+        android:fillColor="#388E3C"
+        android:pathData="M38,98 Q60,105 82,98 Q60,94 38,98 Z" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M44,97 Q60,102 76,97 Q60,95 44,97 Z" />
+
+    <!-- Sacred Tree Trunk & Strong Ancient Roots -->
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M48,96 Q53,84 54,68 Q46,62 36,54 Q32,50 26,48 Q35,47 43,51 Q52,56 56,64 Q57,55 52,44 Q48,37 40,32 Q47,33 53,39 Q57,45 58,54 Q59,42 62,32 Q65,24 60,18 Q66,24 65,34 Q64,44 62,54 Q64,46 68,40 Q74,33 81,32 Q74,37 70,44 Q66,54 66,64 Q70,57 78,52 Q87,48 95,49 Q89,52 84,55 Q76,62 67,68 Q68,84 72,96 Q65,97 60,97 Q55,97 48,96 Z" />
+
+    <!-- Trunk Highlights & Ancient Bark Texture -->
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M59,94 Q59,80 60,66" />
+    <path
+        android:strokeColor="#4E342E"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M56,92 Q55,80 54,72" />
+    <path
+        android:strokeColor="#8D6E63"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M64,92 Q64,82 63,74" />
+
+    <!-- Bodhi Leaves Canopy - Layer 1: Emerald Deep Green Leaves -->
+    <!-- Top Central Leaf -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M60,14 C61,16.5 64,20 68,23 C72,26 73,30 71,34 C69,38 64,40 60,40 C56,40 51,38 49,34 C47,30 48,26 52,23 C56,20 59,16.5 60,14 Z" />
+    <path
+        android:strokeColor="#C8E6C9"
+        android:strokeWidth="0.8"
+        android:pathData="M60,39 L60,16" />
+
+    <!-- Top Left Leaf -->
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M40,24 C41,26 44,28 47,30 C50,32 51,35 49,38 C47,41 43,42 40,42 C37,42 33,41 31,38 C29,35 30,32 33,30 C36,28 39,26 40,24 Z" />
+
+    <!-- Top Right Leaf -->
+    <path
+        android:fillColor="#43A047"
+        android:pathData="M80,24 C81,26 84,28 87,30 C90,32 91,35 89,38 C87,41 83,42 80,42 C77,42 73,41 71,38 C69,35 70,32 73,30 C76,28 79,26 80,24 Z" />
+
+    <!-- Mid Left Leaf -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M26,38 C27,40 30,42 33,44 C36,46 37,49 35,52 C33,55 29,56 26,56 C23,56 19,55 17,52 C15,49 16,46 19,44 C22,42 25,40 26,38 Z" />
+
+    <!-- Mid Right Leaf -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M94,38 C95,40 98,42 101,44 C104,46 105,49 103,52 C101,55 97,56 94,56 C91,56 87,55 85,52 C83,49 84,46 87,44 C90,42 93,40 94,38 Z" />
+
+    <!-- Layer 2: Golden Radiant Bodhi Leaves (The Awakened Leaves) -->
+    <!-- Center Bodhi Leaf (Gold) -->
+    <path
+        android:fillColor="#FBC02D"
+        android:pathData="M60,26 C61,29 64.5,33 69,36.5 C73.5,40 74.5,45 72.5,50 C70.5,55 65.5,58 60,58 C54.5,58 49.5,55 47.5,50 C45.5,45 46.5,40 51,36.5 C55.5,33 59,29 60,26 Z" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="1.2"
+        android:pathData="M60,56 L60,28" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="0.8"
+        android:pathData="M60,50 Q65,47 68,43" />
+    <path
+        android:strokeColor="#FFF9C4"
+        android:strokeWidth="0.8"
+        android:pathData="M60,50 Q55,47 52,43" />
+
+    <!-- Left Upper Bodhi Leaf (Golden Lime) -->
+    <path
+        android:fillColor="#E5B338"
+        android:pathData="M46,36 C47,38.5 50,42 54,44.5 C58,47 59,51 57.5,55 C56,59 51.5,61.5 47,61.5 C42.5,61.5 38.5,59 37,55 C35.5,51 36.5,47 40,44.5 C43.5,42 45,38.5 46,36 Z" />
+
+    <!-- Right Upper Bodhi Leaf (Golden Lime) -->
+    <path
+        android:fillColor="#E5B338"
+        android:pathData="M74,36 C75,38.5 78,42 82,44.5 C86,47 87,51 85.5,55 C84,59 79.5,61.5 75,61.5 C70.5,61.5 66.5,59 65,55 C63.5,51 64.5,47 68,44.5 C71.5,42 73,38.5 74,36 Z" />
+
+    <!-- Outer Lower Left Leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M34,50 C35,52 38,54.5 41,56.5 C44,58.5 45,61.5 43.5,64.5 C42,67.5 38.5,69 35,69 C31.5,69 28,67.5 26.5,64.5 C25,61.5 26,58.5 29,56.5 C32,54.5 33,52 34,50 Z" />
+
+    <!-- Outer Lower Right Leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M86,50 C87,52 90,54.5 93,56.5 C96,58.5 97,61.5 95.5,64.5 C94,67.5 90.5,69 87,69 C83.5,69 80,67.5 78.5,64.5 C77,61.5 78,58.5 81,56.5 C84,54.5 85,52 86,50 Z" />
+
+    <!-- Golden Starlight Sparks / Radiant Merit Blessing Dots -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M60,8 m -2,0 a 2,2 0 1,0 4,0 a 2,2 0 1,0 -4,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M30,18 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M90,18 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M18,32 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M102,32 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M14,64 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M106,64 m -1.5,0 a 1.5,1.5 0 1,0 3,0 a 1.5,1.5 0 1,0 -3,0" />
+</vector>
