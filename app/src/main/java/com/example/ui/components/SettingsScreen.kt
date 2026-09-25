@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import com.example.data.backup.BackupSummary
 import com.example.ui.i18n.AppLanguage
 import com.example.ui.i18n.LocalAppStrings
 import com.example.ui.theme.AppThemeMode
@@ -67,6 +68,11 @@ fun SettingsScreen(
     onPlayTestChime: () -> Unit,
     onOpenDedication: () -> Unit,
     allMerits: List<MeritEntity>,
+    isBackupLoading: Boolean = false,
+    onExportBackup: (android.net.Uri, (Result<BackupSummary>) -> Unit) -> Unit = { _, _ -> },
+    onInspectBackup: (android.net.Uri, (Result<BackupSummary>) -> Unit) -> Unit = { _, _ -> },
+    onRestoreBackup: (android.net.Uri, Boolean, (Result<BackupSummary>) -> Unit) -> Unit = { _, _, _ -> },
+    onShareBackup: ((android.net.Uri) -> Unit, (String) -> Unit) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val strings = LocalAppStrings.current
@@ -400,6 +406,19 @@ fun SettingsScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Section: Backup & Restore (Posts with Media Included)
+        BackupRestoreSection(
+            isBackupLoading = isBackupLoading,
+            onExportBackup = onExportBackup,
+            onInspectBackup = onInspectBackup,
+            onRestoreBackup = onRestoreBackup,
+            onShareBackup = onShareBackup
+        )
 
         Spacer(modifier = Modifier.height(28.dp))
 

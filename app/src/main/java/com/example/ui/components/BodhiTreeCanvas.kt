@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -13,11 +12,10 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -34,13 +32,29 @@ import androidx.compose.ui.platform.testTag
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
 import kotlin.math.hypot
-import kotlin.math.sin
 
-data class LeafTouchHitBox(
-    val slotId: Int,
-    val merit: MeritEntity?,
-    val center: Offset,
-    val radius: Float
+/**
+ * Pre-allocated drawing cache holding all geometry paths, gradients, and stipple points.
+ * Generated only when canvas width or height changes.
+ * Zero allocations during draw frames!
+ */
+private class BodhiTreeRenderCache(
+    val width: Float,
+    val height: Float,
+    val treePaths: TreePaths,
+    val canonicalLeafPath: Path,
+    val canonicalVeinsPath: Path,
+    val haloCenter: Offset,
+    val haloRadius: Float,
+    val haloBrush: Brush,
+    val shadowCenter: Offset,
+    val shadowTopLeft: Offset,
+    val shadowSize: Size,
+    val shadowBrush: Brush,
+    val rootStipples: List<Offset>,
+    val trunkGradient: Brush,
+    val dormantLeafBrush: Brush,
+    val awakenedLeafBrush: Brush
 )
 
 @Composable
@@ -51,30 +65,22 @@ fun BodhiTreeCanvas(
     onEmptyLeafClick: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Subtle ambient wind sway (smooth & lightweight)
-    val infiniteTransition = rememberInfiniteTransition(label = "bodhi_wind")
-    val windSway by infiniteTransition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3600, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "wind_sway"
-    )
-
-    // Gentle sun halo pulse
-    val auraGlow by infiniteTransition.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "aura_glow"
-    )
-
-    var leafHitBoxes by remember { mutableStateOf<List<LeafTouchHitBox>>(emptyList()) }
+    // Only animate when there's an active newly sprouted leaf to highlight
+    val newlySproutedPulse = if (newlySproutedId != null) {
+        val transition = rememberInfiniteTransition(label = "new_leaf_pulse")
+        val pulse by transition.animateFloat(
+            initialValue = 0.6f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "sprout_pulse"
+        )
+        pulse
+    } else {
+        1.0f
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -84,16 +90,99 @@ fun BodhiTreeCanvas(
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
 
-        // Precompute and cache tree paths on dimension change (zero allocations during draw!)
-        val treePaths = remember(width, height) {
-            BodhiTreeGeometry.buildTreePaths(width, height)
+        // 1. Build and cache all drawing artifacts on dimension change
+        val renderCache = remember(width, height) {
+            val trunkBaseX = width * 0.50f
+            val rootY = height * 0.88f
+            val shadowW = width * 0.54f
+            val shadowH = height * 0.026f
+            val haloC = Offset(width * 0.50f, height * 0.44f)
+            val haloR = width * 0.45f
+
+            val stipplesList = listOf(
+                Offset(trunkBaseX - (width * 0.23f), rootY + 2f),
+                Offset(trunkBaseX - (width * 0.19f), rootY + 5f),
+                Offset(trunkBaseX - (width * 0.15f), rootY + 8f),
+                Offset(trunkBaseX - (width * 0.10f), rootY + 11f),
+                Offset(trunkBaseX - (width * 0.05f), rootY + 12f),
+                Offset(trunkBaseX, rootY + 14f),
+                Offset(trunkBaseX + (width * 0.05f), rootY + 12f),
+                Offset(trunkBaseX + (width * 0.10f), rootY + 11f),
+                Offset(trunkBaseX + (width * 0.15f), rootY + 8f),
+                Offset(trunkBaseX + (width * 0.19f), rootY + 5f),
+                Offset(trunkBaseX + (width * 0.23f), rootY + 2f),
+                Offset(trunkBaseX - (width * 0.26f), rootY + 4f),
+                Offset(trunkBaseX - (width * 0.17f), rootY + 10f),
+                Offset(trunkBaseX + (width * 0.17f), rootY + 10f),
+                Offset(trunkBaseX + (width * 0.26f), rootY + 4f)
+            )
+
+            BodhiTreeRenderCache(
+                width = width,
+                height = height,
+                treePaths = BodhiTreeGeometry.buildTreePaths(width, height),
+                canonicalLeafPath = BodhiTreeGeometry.createBodhiLeafShape(scale = 1.0f),
+                canonicalVeinsPath = BodhiTreeGeometry.createBodhiVeinsPath(scale = 1.0f),
+                haloCenter = haloC,
+                haloRadius = haloR,
+                haloBrush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x22FFE082),
+                        Color(0x14FFD54F),
+                        Color(0x0681C784),
+                        Color.Transparent
+                    ),
+                    center = haloC,
+                    radius = haloR
+                ),
+                shadowCenter = Offset(trunkBaseX, rootY + (height * 0.008f)),
+                shadowTopLeft = Offset(trunkBaseX - (shadowW * 0.5f), rootY),
+                shadowSize = Size(shadowW, shadowH),
+                shadowBrush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0x2826140E),
+                        Color(0x1226140E),
+                        Color.Transparent
+                    ),
+                    center = Offset(trunkBaseX, rootY + (height * 0.008f)),
+                    radius = shadowW * 0.5f
+                ),
+                rootStipples = stipplesList,
+                trunkGradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF1C0A06),
+                        Color(0xFF33140C),
+                        Color(0xFF4E2216),
+                        Color(0xFF683122),
+                        Color(0xFF481F14),
+                        Color(0xFF260E08),
+                        Color(0xFF1A0905)
+                    ),
+                    startX = trunkBaseX - (width * 0.18f),
+                    endX = trunkBaseX + (width * 0.18f)
+                ),
+                dormantLeafBrush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0x35E29E7D),
+                        Color(0x28D48B69),
+                        Color(0x20B86C4B)
+                    ),
+                    startY = -28f,
+                    endY = 14f
+                ),
+                awakenedLeafBrush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFE29E7D),
+                        Color(0xFFD48B69),
+                        Color(0xFFB86C4B)
+                    ),
+                    startY = -28f,
+                    endY = 14f
+                )
+            )
         }
 
-        // Precompute canonical leaf shapes (cached)
-        val canonicalLeafPath = remember { BodhiTreeGeometry.createBodhiLeafShape(scale = 1.0f) }
-        val canonicalVeinsPath = remember { BodhiTreeGeometry.createBodhiVeinsPath(scale = 1.0f) }
-
-        // Map merits by their slot index
+        // 2. Pre-index merits by branch slot (O(1) lookup per leaf slot)
         val meritsBySlot = remember(merits) {
             merits.associateBy { it.branchIndex }
         }
@@ -101,412 +190,271 @@ fun BodhiTreeCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(merits) {
+                .pointerInput(meritsBySlot, width, height) {
                     detectTapGestures { tapOffset ->
-                        val hit = leafHitBoxes.firstOrNull { hitBox ->
-                            val dist = hypot(tapOffset.x - hitBox.center.x, tapOffset.y - hitBox.center.y)
-                            dist <= hitBox.radius * 1.5f
+                        val slots = BodhiTreeGeometry.LEAF_SLOTS
+                        val hit = slots.firstOrNull { slot ->
+                            val cx = slot.xRatio * width
+                            val cy = slot.yRatio * height
+                            val hitRadius = 32f * (width / 390f) * 1.05f * slot.scaleFactor * 1.45f
+                            hypot(tapOffset.x - cx, tapOffset.y - cy) <= hitRadius
                         }
                         if (hit != null) {
-                            if (hit.merit != null) {
-                                onLeafClick(hit.merit)
+                            val merit = meritsBySlot[hit.id]
+                            if (merit != null) {
+                                onLeafClick(merit)
                             } else {
-                                onEmptyLeafClick(hit.slotId)
+                                onEmptyLeafClick(hit.id)
                             }
                         }
                     }
                 }
         ) {
-            val canvasW = size.width
-            val canvasH = size.height
+            // 1. Serene Golden Sun Halo
+            drawCircle(
+                brush = renderCache.haloBrush,
+                center = renderCache.haloCenter,
+                radius = renderCache.haloRadius
+            )
 
-            // 1. Serene Backdrop with Gentle Golden Halo
-            drawCircularCanopyHalo(canvasW, canvasH, auraGlow)
+            // 2. Soft Ground Contact Shadow & Botanical Soil Stipples
+            drawOval(
+                brush = renderCache.shadowBrush,
+                topLeft = renderCache.shadowTopLeft,
+                size = renderCache.shadowSize
+            )
 
-            // 2. Soft Ground Contact Shadow & Delicate Soil Stipples (Zero harsh blocks!)
-            drawRootContactShadow(canvasW, canvasH)
+            val stippleColor = Color(0x384A251B)
+            val stipples = renderCache.rootStipples
+            for (i in stipples.indices) {
+                drawCircle(
+                    color = stippleColor,
+                    radius = 1.6f,
+                    center = stipples[i]
+                )
+            }
 
-            // 3. Render Circular Bodhi Tree Trunk, Root Tendrils & Branches
-            drawBodhiTreeWood(treePaths, canvasW, canvasH)
+            // 3. Render Hand-Carved Sacred Bodhi Wood with Pre-Cached Paths and Brushes
+            drawCarvedBodhiTreeWood(renderCache)
 
-            // 4. Fill the entire tree with leaves!
-            // Dormant leaves: plain leaf shape without inner design
-            // Awakened leaves: full inner skeleton veins, glowing aura & dewdrop jewel in middle
+            // 4. Render All Bodhi Leaves
             val slots = BodhiTreeGeometry.LEAF_SLOTS
-            val hitBoxes = mutableListOf<LeafTouchHitBox>()
+            val leafBaseScale = (width / 390f) * 1.05f
 
-            slots.forEach { slot ->
-                val meritForSlot = meritsBySlot[slot.id]
-                val hitBox = if (meritForSlot != null) {
-                    // Awakened leaf: inner design appears inside the leaf!
-                    renderAwakenedBodhiLeaf(
-                        merit = meritForSlot,
-                        slot = slot,
-                        canvasW = canvasW,
-                        canvasH = canvasH,
-                        windSway = windSway,
-                        canonicalLeafPath = canonicalLeafPath,
-                        canonicalVeinsPath = canonicalVeinsPath,
-                        isNewlySprouted = meritForSlot.id == newlySproutedId
-                    )
-                } else {
-                    // Plain dormant leaf: fills the tree canopy, without inner design
-                    renderPlainBodhiLeaf(
-                        slot = slot,
-                        canvasW = canvasW,
-                        canvasH = canvasH,
-                        windSway = windSway,
-                        canonicalLeafPath = canonicalLeafPath
-                    )
+            for (i in slots.indices) {
+                val slot = slots[i]
+                val merit = meritsBySlot[slot.id]
+                val leafX = slot.xRatio * width
+                val leafY = slot.yRatio * height
+                val scale = leafBaseScale * slot.scaleFactor
+
+                translate(left = leafX, top = leafY) {
+                    rotate(degrees = slot.leafAngle, pivot = Offset.Zero) {
+                        scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero) {
+                            if (merit != null) {
+                                // Awakened Leaf (Full inner skeleton veins, glowing category jewel)
+                                val isNewlySprouted = merit.id == newlySproutedId
+                                renderAwakenedLeaf(
+                                    merit = merit,
+                                    cache = renderCache,
+                                    isNewlySprouted = isNewlySprouted,
+                                    pulseAlpha = newlySproutedPulse
+                                )
+                            } else {
+                                // Dormant Leaf (Plain copper silhouette without inner veins)
+                                renderDormantLeaf(cache = renderCache)
+                            }
+                        }
+                    }
                 }
-                hitBoxes.add(hitBox)
-            }
-
-            leafHitBoxes = hitBoxes
-        }
-    }
-}
-
-/**
- * Draws the soft circular golden halo behind the tree canopy matching the mandala style.
- */
-private fun DrawScope.drawCircularCanopyHalo(width: Float, height: Float, auraGlow: Float) {
-    val center = Offset(width * 0.50f, height * 0.44f)
-    val radius = (width * 0.45f) * auraGlow
-
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color(0x20FFE082), // Soft golden sunlight
-                Color(0x12FFD54F),
-                Color(0x0681C784), // Gentle leaf breath
-                Color.Transparent
-            ),
-            center = center,
-            radius = radius
-        ),
-        center = center,
-        radius = radius
-    )
-}
-
-/**
- * Draws natural, soft grounding shadows and fine botanical etching stipples directly under the roots.
- */
-private fun DrawScope.drawRootContactShadow(width: Float, height: Float) {
-    val trunkBaseX = width * 0.50f
-    val rootY = height * 0.88f
-
-    // Soft oval contact shadow under the roots
-    val shadowWidth = width * 0.52f
-    val shadowHeight = height * 0.024f
-
-    drawOval(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color(0x2226140E),
-                Color(0x1026140E),
-                Color.Transparent
-            ),
-            center = Offset(trunkBaseX, rootY + (height * 0.008f)),
-            radius = shadowWidth * 0.5f
-        ),
-        topLeft = Offset(trunkBaseX - (shadowWidth * 0.5f), rootY),
-        size = androidx.compose.ui.geometry.Size(shadowWidth, shadowHeight)
-    )
-
-    // Fine organic ground stipples / earth dust specks matching reference image
-    val stipples = listOf(
-        Offset(trunkBaseX - (width * 0.22f), rootY + 2f),
-        Offset(trunkBaseX - (width * 0.18f), rootY + 5f),
-        Offset(trunkBaseX - (width * 0.14f), rootY + 8f),
-        Offset(trunkBaseX - (width * 0.09f), rootY + 11f),
-        Offset(trunkBaseX - (width * 0.04f), rootY + 12f),
-        Offset(trunkBaseX, rootY + 13f),
-        Offset(trunkBaseX + (width * 0.04f), rootY + 12f),
-        Offset(trunkBaseX + (width * 0.09f), rootY + 11f),
-        Offset(trunkBaseX + (width * 0.14f), rootY + 8f),
-        Offset(trunkBaseX + (width * 0.18f), rootY + 5f),
-        Offset(trunkBaseX + (width * 0.22f), rootY + 2f),
-        Offset(trunkBaseX - (width * 0.25f), rootY + 4f),
-        Offset(trunkBaseX - (width * 0.16f), rootY + 10f),
-        Offset(trunkBaseX + (width * 0.16f), rootY + 10f),
-        Offset(trunkBaseX + (width * 0.25f), rootY + 4f)
-    )
-
-    stipples.forEach { pos ->
-        drawCircle(
-            color = Color(0x384A251B),
-            radius = 1.6f,
-            center = pos
-        )
-    }
-}
-
-/**
- * Draws the carved mahogany trunk, splayed root tendrils, radiating boughs, and sub-twigs.
- */
-private fun DrawScope.drawBodhiTreeWood(paths: TreePaths, width: Float, height: Float) {
-    val trunkBaseX = width * 0.50f
-
-    // 1. Trunk Body Fill (Rich deep mahogany gradient)
-    drawPath(
-        path = paths.trunkPath,
-        brush = Brush.horizontalGradient(
-            colors = listOf(
-                Color(0xFF26140E),
-                Color(0xFF4A251B),
-                Color(0xFF6E3827),
-                Color(0xFF422117),
-                Color(0xFF23120C)
-            ),
-            startX = trunkBaseX - (width * 0.20f),
-            endX = trunkBaseX + (width * 0.20f)
-        )
-    )
-
-    // 2. Trunk Outline Stroke for crisp definition
-    drawPath(
-        path = paths.trunkPath,
-        color = Color(0xFF26140E),
-        style = Stroke(width = 1.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    )
-
-    // 3. Splayed Root Tendrils
-    drawPath(
-        path = paths.rootTendrilsPath,
-        color = Color(0xFF381B13),
-        style = Stroke(
-            width = 4.2f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-    drawPath(
-        path = paths.rootTendrilsPath,
-        color = Color(0xFF6E3827),
-        style = Stroke(
-            width = 1.8f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-
-    // 4. Trunk Vertical Bark Grain Lines flowing into roots
-    val grainOffsets = listOf(-0.035f, -0.020f, -0.008f, 0f, 0.008f, 0.020f, 0.035f)
-    grainOffsets.forEach { offsetRatio ->
-        val startX = trunkBaseX + (width * offsetRatio)
-        val endX = trunkBaseX + (width * offsetRatio * 2.2f)
-        drawLine(
-            color = Color(0xFF1E0E08).copy(alpha = 0.55f),
-            start = Offset(startX, height * 0.58f),
-            end = Offset(endX, height * 0.88f),
-            strokeWidth = 1.8f,
-            cap = StrokeCap.Round
-        )
-    }
-
-    // 5. Heavy Arching Boughs
-    drawPath(
-        path = paths.heavyBoughsPath,
-        color = Color(0xFF381B13),
-        style = Stroke(
-            width = 12f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-    drawPath(
-        path = paths.heavyBoughsPath,
-        color = Color(0xFF5D2E21),
-        style = Stroke(
-            width = 5.5f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-
-    // 6. Fine Branch Twigs reaching to leaf slots
-    drawPath(
-        path = paths.twigsPath,
-        color = Color(0xFF432017),
-        style = Stroke(
-            width = 3.2f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-    drawPath(
-        path = paths.twigsPath,
-        color = Color(0xFF663426),
-        style = Stroke(
-            width = 1.4f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-    )
-}
-
-/**
- * Renders a plain dormant Bodhi leaf (fills the tree, without inner design in the middle).
- * "fill the tree with the leafs, but dont add the leaf design in the middle"
- */
-private fun DrawScope.renderPlainBodhiLeaf(
-    slot: BodhiLeafSlot,
-    canvasW: Float,
-    canvasH: Float,
-    windSway: Float,
-    canonicalLeafPath: Path
-): LeafTouchHitBox {
-    val leafX = slot.xRatio * canvasW
-    val leafY = slot.yRatio * canvasH
-    val leafCenter = Offset(leafX, leafY)
-
-    val swayOffset = sin((slot.id * 1.7f) + (windSway * 1.4f)) * 3.5f
-    val currentAngle = slot.leafAngle + swayOffset
-
-    val leafBaseScale = (canvasW / 390f) * 1.05f * slot.scaleFactor
-    val hitRadius = 30f * leafBaseScale
-
-    translate(left = leafCenter.x, top = leafCenter.y) {
-        rotate(degrees = currentAngle, pivot = Offset.Zero) {
-            scale(scaleX = leafBaseScale, scaleY = leafBaseScale, pivot = Offset.Zero) {
-                // 1. Soft translucent copper silhouette fill (without inner design)
-                drawPath(
-                    path = canonicalLeafPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0x35E29E7D),
-                            Color(0x28D48B69),
-                            Color(0x20B86C4B)
-                        ),
-                        startY = -28f,
-                        endY = 14f
-                    ),
-                    style = Fill
-                )
-
-                // 2. Delicate copper leaf outline
-                drawPath(
-                    path = canonicalLeafPath,
-                    color = Color(0x754A1F13),
-                    style = Stroke(width = 1.0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                )
-                // NOTICE: No inner skeleton veins and no center jewel drawn here!
             }
         }
     }
+}
 
-    return LeafTouchHitBox(
-        slotId = slot.id,
-        merit = null,
-        center = leafCenter,
-        radius = hitRadius
+/**
+ * Draws the hand-carved mahogany trunk, roots, and 4 tiers of boughs.
+ * Uses cached paths and pre-allocated brushes for ultra-fast, zero-jank 60/120 FPS rendering.
+ */
+private fun DrawScope.drawCarvedBodhiTreeWood(cache: BodhiTreeRenderCache) {
+    val paths = cache.treePaths
+
+    // 1. Trunk Base Fill (Mahogany gradient)
+    drawPath(path = paths.trunkSilhouettePath, brush = cache.trunkGradient)
+
+    // Woodcut outline
+    drawPath(
+        path = paths.trunkSilhouettePath,
+        color = Color(0xFF140603),
+        style = Stroke(width = 1.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+
+    // 2. Trunk Fissures & Bark Furrows
+    drawPath(
+        path = paths.trunkFissuresPath,
+        color = Color(0xFF100402),
+        style = Stroke(width = 2.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.trunkFissuresPath,
+        color = Color(0xFF240D08),
+        style = Stroke(width = 1.1f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+
+    // 3. Trunk Satin Highlights
+    drawPath(
+        path = paths.trunkHighlightsPath,
+        color = Color(0xFF8F4632).copy(alpha = 0.85f),
+        style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+    )
+    drawPath(
+        path = paths.trunkHighlightsPath,
+        color = Color(0xFFB8664D).copy(alpha = 0.60f),
+        style = Stroke(width = 1.0f, cap = StrokeCap.Round)
+    )
+
+    // 4. Gnarled Roots
+    drawPath(
+        path = paths.gnarledRootsPath,
+        color = Color(0xFF160704),
+        style = Stroke(width = 6.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.gnarledRootsPath,
+        color = Color(0xFF4A2016),
+        style = Stroke(width = 3.4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.rootHighlightsPath,
+        color = Color(0xFF944A35),
+        style = Stroke(width = 1.6f, cap = StrokeCap.Round)
+    )
+
+    // 5. Major Arching Boughs (4 Tiers)
+    drawPath(
+        path = paths.majorBoughsShadowPath,
+        color = Color(0xFF140603),
+        style = Stroke(width = 14f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.majorBoughsBodyPath,
+        color = Color(0xFF4C2317),
+        style = Stroke(width = 8.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.majorBoughsHighlightPath,
+        color = Color(0xFF9E4E37),
+        style = Stroke(width = 2.8f, cap = StrokeCap.Round)
+    )
+    drawPath(
+        path = paths.majorBoughsHighlightPath,
+        color = Color(0xFFC47157).copy(alpha = 0.70f),
+        style = Stroke(width = 1.2f, cap = StrokeCap.Round)
+    )
+
+    // 6. Secondary Mid-Boughs
+    drawPath(
+        path = paths.midBoughsBodyPath,
+        color = Color(0xFF220C07),
+        style = Stroke(width = 5.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.midBoughsBodyPath,
+        color = Color(0xFF5A2A1E),
+        style = Stroke(width = 2.8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.midBoughsHighlightPath,
+        color = Color(0xFF9E4E37),
+        style = Stroke(width = 1.4f, cap = StrokeCap.Round)
+    )
+
+    // 7. Fine Twigs
+    drawPath(
+        path = paths.fineTwigsPath,
+        color = Color(0xFF2B110A),
+        style = Stroke(width = 2.8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+    drawPath(
+        path = paths.fineTwigsPath,
+        color = Color(0xFF6B3324),
+        style = Stroke(width = 1.3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
+}
+
+/**
+ * Renders a plain dormant Bodhi leaf (soft silhouette without inner design in the middle).
+ */
+private fun DrawScope.renderDormantLeaf(cache: BodhiTreeRenderCache) {
+    drawPath(
+        path = cache.canonicalLeafPath,
+        brush = cache.dormantLeafBrush,
+        style = Fill
+    )
+    drawPath(
+        path = cache.canonicalLeafPath,
+        color = Color(0x754A1F13),
+        style = Stroke(width = 1.0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     )
 }
 
 /**
  * Renders an awakened Bodhi leaf with the full exquisite design inside:
- * glowing category essence, intricate skeleton veins, and central sacred dewdrop jewel!
- * "when i add a merit that design appears inside the leaf"
+ * glowing category essence, intricate skeleton veins, and central sacred dewdrop jewel.
  */
-private fun DrawScope.renderAwakenedBodhiLeaf(
+private fun DrawScope.renderAwakenedLeaf(
     merit: MeritEntity,
-    slot: BodhiLeafSlot,
-    canvasW: Float,
-    canvasH: Float,
-    windSway: Float,
-    canonicalLeafPath: Path,
-    canonicalVeinsPath: Path,
-    isNewlySprouted: Boolean
-): LeafTouchHitBox {
+    cache: BodhiTreeRenderCache,
+    isNewlySprouted: Boolean,
+    pulseAlpha: Float
+) {
     val category = MeritCategory.fromString(merit.category)
-
-    val leafX = slot.xRatio * canvasW
-    val leafY = slot.yRatio * canvasH
-    val leafCenter = Offset(leafX, leafY)
-
-    val swayOffset = sin((slot.id * 1.7f) + (windSway * 1.4f)) * 3.5f
-    val currentAngle = slot.leafAngle + swayOffset
-
-    val leafBaseScale = (canvasW / 390f) * 1.05f * slot.scaleFactor
-    val hitRadius = 32f * leafBaseScale
 
     if (isNewlySprouted) {
         drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFFFD54F).copy(alpha = 0.85f),
-                    Color(0xFFFFB74D).copy(alpha = 0.40f),
-                    Color.Transparent
-                ),
-                center = leafCenter,
-                radius = hitRadius * 2.4f
-            ),
-            radius = hitRadius * 2.4f,
-            center = leafCenter
+            color = Color(0xFFFFD54F).copy(alpha = 0.6f * pulseAlpha),
+            radius = 36f,
+            center = Offset.Zero
         )
     }
 
-    translate(left = leafCenter.x, top = leafCenter.y) {
-        rotate(degrees = currentAngle, pivot = Offset.Zero) {
-            scale(scaleX = leafBaseScale, scaleY = leafBaseScale, pivot = Offset.Zero) {
+    // 1. Rich Luminous Copper Body
+    drawPath(
+        path = cache.canonicalLeafPath,
+        brush = cache.awakenedLeafBrush,
+        style = Fill
+    )
 
-                // 1. Rich Luminous Copper / Rose-Gold Bodhi Leaf Body
-                drawPath(
-                    path = canonicalLeafPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFE29E7D),
-                            Color(0xFFD48B69),
-                            Color(0xFFB86C4B)
-                        ),
-                        startY = -28f,
-                        endY = 14f
-                    ),
-                    style = Fill
-                )
+    // 2. Category Essence Glow appearing inside the leaf
+    drawCircle(
+        color = category.leafColor.copy(alpha = 0.35f),
+        radius = 9f,
+        center = Offset.Zero
+    )
 
-                // 2. Category Essence Glow appearing inside the leaf
-                drawCircle(
-                    color = category.leafColor.copy(alpha = 0.35f),
-                    radius = 9f,
-                    center = Offset(0f, 0f)
-                )
+    // 3. Crisp Dark Copper Leaf Perimeter Outline
+    drawPath(
+        path = cache.canonicalLeafPath,
+        color = Color(0xFF4A1F13),
+        style = Stroke(width = 1.3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    )
 
-                // 3. Crisp Dark Copper Leaf Perimeter Outline
-                drawPath(
-                    path = canonicalLeafPath,
-                    color = Color(0xFF4A1F13),
-                    style = Stroke(width = 1.3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                )
+    // 4. INNER DESIGN: Intricate Skeleton Veins
+    drawPath(
+        path = cache.canonicalVeinsPath,
+        color = Color(0xFF5A2518).copy(alpha = 0.88f),
+        style = Stroke(width = 0.95f, cap = StrokeCap.Round)
+    )
 
-                // 4. THE DESIGN IN THE MIDDLE: Intricate Skeleton Veins
-                drawPath(
-                    path = canonicalVeinsPath,
-                    color = Color(0xFF5A2518).copy(alpha = 0.88f),
-                    style = Stroke(width = 0.95f, cap = StrokeCap.Round)
-                )
-
-                // 5. THE DESIGN IN THE MIDDLE: Central Sacred Dewdrop Jewel
-                drawCircle(
-                    color = category.accentColor,
-                    radius = 2.4f,
-                    center = Offset(0f, -2f)
-                )
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.95f),
-                    radius = 1.1f,
-                    center = Offset(-0.4f, -2.4f)
-                )
-            }
-        }
-    }
-
-    return LeafTouchHitBox(
-        slotId = slot.id,
-        merit = merit,
-        center = leafCenter,
-        radius = hitRadius
+    // 5. INNER DESIGN: Central Sacred Dewdrop Jewel
+    drawCircle(
+        color = category.accentColor,
+        radius = 2.4f,
+        center = Offset(0f, -2f)
+    )
+    drawCircle(
+        color = Color.White.copy(alpha = 0.95f),
+        radius = 1.1f,
+        center = Offset(-0.4f, -2.4f)
     )
 }

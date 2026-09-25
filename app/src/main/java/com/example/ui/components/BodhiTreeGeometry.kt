@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.Path
 
 /**
  * Represents a sacred leaf slot position on the circular Bodhi tree matching the uploaded artwork.
- * Leaves ONLY appear at these slots when a post/merit is recorded.
  */
 data class BodhiLeafSlot(
     val id: Int,
@@ -17,15 +16,28 @@ data class BodhiLeafSlot(
     val scaleFactor: Float = 1.0f
 )
 
+data class TreePaths(
+    val trunkSilhouettePath: Path,
+    val trunkFissuresPath: Path,
+    val trunkHighlightsPath: Path,
+    val gnarledRootsPath: Path,
+    val rootHighlightsPath: Path,
+    val majorBoughsShadowPath: Path,
+    val majorBoughsBodyPath: Path,
+    val majorBoughsHighlightPath: Path,
+    val midBoughsBodyPath: Path,
+    val midBoughsHighlightPath: Path,
+    val fineTwigsPath: Path
+)
+
 object BodhiTreeGeometry {
 
-    // Pre-defined slots arranged in the circular mandala canopy matching the reference image.
-    // Slots are ordered by priority so leaves sprout in an organic, balanced spread across all branches.
+    // Symmetrical leaf slots positioned exactly along the organic circular canopy
+    // of the uploaded sacred Bodhi tree artwork.
     val LEAF_SLOTS: List<BodhiLeafSlot> by lazy {
         val list = mutableListOf<BodhiLeafSlot>()
         var id = 0
 
-        // Helper to add symmetrical pairs
         fun addPair(
             lx: Float, ly: Float, bx: Float, by: Float, lAngle: Float,
             rx: Float = 1.0f - lx, ry: Float = ly,
@@ -43,231 +55,423 @@ object BodhiTreeGeometry {
             list.add(BodhiLeafSlot(id++, cx, cy, bx, by, angle, scale))
         }
 
-        // 1. Crown Apex (Top center)
-        addCenter(0.50f, 0.06f, 0.50f, 0.12f, 0f, 1.15f)
-        addPair(0.44f, 0.08f, 0.46f, 0.14f, -18f, scale = 1.1f)
-        addPair(0.38f, 0.11f, 0.42f, 0.17f, -30f, scale = 1.05f)
+        // 1. Crown Pinnacle & Apex (Top center)
+        addCenter(0.50f, 0.065f, 0.50f, 0.13f, 0f, 1.15f)
+        addPair(0.44f, 0.085f, 0.465f, 0.145f, -16f, scale = 1.1f)
+        addPair(0.38f, 0.115f, 0.42f, 0.175f, -28f, scale = 1.05f)
 
-        // 2. Upper Shoulder Canopy (High ring)
-        addPair(0.32f, 0.14f, 0.36f, 0.20f, -40f)
-        addPair(0.26f, 0.18f, 0.31f, 0.24f, -50f)
-        addPair(0.20f, 0.24f, 0.26f, 0.30f, -65f)
-        addPair(0.15f, 0.31f, 0.22f, 0.36f, -80f)
+        // 2. High Outer Ring (Top-left & Top-right shoulder)
+        addPair(0.32f, 0.15f, 0.36f, 0.21f, -42f)
+        addPair(0.26f, 0.195f, 0.31f, 0.25f, -54f)
+        addPair(0.20f, 0.255f, 0.26f, 0.31f, -68f)
+        addPair(0.15f, 0.325f, 0.215f, 0.37f, -82f)
 
         // 3. Middle Equatorial Outer Rim (Outer circular boundary)
-        addPair(0.11f, 0.39f, 0.18f, 0.42f, -95f, scale = 1.05f)
-        addPair(0.10f, 0.48f, 0.18f, 0.49f, -110f, scale = 1.05f)
-        addPair(0.12f, 0.57f, 0.20f, 0.56f, -125f)
-        addPair(0.16f, 0.66f, 0.24f, 0.63f, -140f)
+        addPair(0.11f, 0.405f, 0.175f, 0.435f, -95f, scale = 1.05f)
+        addPair(0.095f, 0.495f, 0.17f, 0.505f, -108f, scale = 1.05f)
+        addPair(0.115f, 0.585f, 0.195f, 0.575f, -124f)
+        addPair(0.155f, 0.675f, 0.235f, 0.645f, -138f)
 
         // 4. Lower Arching Rim (Lower boundary)
-        addPair(0.22f, 0.74f, 0.29f, 0.69f, -155f)
-        addPair(0.29f, 0.80f, 0.34f, 0.73f, -170f, scale = 1.05f)
-        addPair(0.37f, 0.82f, 0.40f, 0.74f, 175f)
-        addPair(0.44f, 0.80f, 0.45f, 0.73f, 160f)
+        addPair(0.215f, 0.755f, 0.285f, 0.705f, -152f)
+        addPair(0.285f, 0.815f, 0.335f, 0.745f, -168f, scale = 1.05f)
+        addPair(0.365f, 0.835f, 0.395f, 0.755f, 176f)
+        addPair(0.445f, 0.815f, 0.455f, 0.745f, 162f)
 
-        // 5. Inner Crown & Mid-Canopy Nodes (Dense interior heart)
-        addCenter(0.50f, 0.18f, 0.50f, 0.25f, 0f, 0.95f)
-        addPair(0.44f, 0.22f, 0.46f, 0.28f, -15f, scale = 0.95f)
-        addPair(0.37f, 0.25f, 0.40f, 0.32f, -35f, scale = 0.95f)
-        addPair(0.30f, 0.30f, 0.34f, 0.37f, -50f, scale = 0.95f)
+        // 5. Inner Crown (High inner canopy)
+        addCenter(0.50f, 0.175f, 0.50f, 0.24f, 0f, 0.95f)
+        addPair(0.435f, 0.215f, 0.46f, 0.275f, -18f, scale = 0.95f)
+        addPair(0.37f, 0.245f, 0.405f, 0.315f, -36f, scale = 0.95f)
+        addPair(0.305f, 0.295f, 0.345f, 0.365f, -52f, scale = 0.95f)
 
-        // 6. Mid Interior Tier
-        addPair(0.23f, 0.39f, 0.28f, 0.43f, -70f, scale = 0.95f)
-        addPair(0.22f, 0.49f, 0.29f, 0.50f, -90f, scale = 0.95f)
-        addPair(0.26f, 0.58f, 0.33f, 0.57f, -115f, scale = 0.95f)
-        addPair(0.34f, 0.64f, 0.39f, 0.62f, -135f, scale = 0.95f)
+        // 6. Mid Interior Canopy
+        addPair(0.235f, 0.385f, 0.285f, 0.425f, -72f, scale = 0.95f)
+        addPair(0.225f, 0.485f, 0.285f, 0.495f, -92f, scale = 0.95f)
+        addPair(0.265f, 0.575f, 0.325f, 0.565f, -116f, scale = 0.95f)
+        addPair(0.345f, 0.635f, 0.385f, 0.615f, -136f, scale = 0.95f)
 
-        // 7. Core Heart Nodes (Above the fork)
-        addCenter(0.50f, 0.32f, 0.50f, 0.39f, 0f, 0.95f)
-        addPair(0.43f, 0.36f, 0.45f, 0.42f, -20f, scale = 0.95f)
-        addPair(0.36f, 0.42f, 0.40f, 0.47f, -45f, scale = 0.95f)
-        addPair(0.42f, 0.50f, 0.45f, 0.55f, -30f, scale = 0.95f)
+        // 7. Core Heart Nodes (Above trunk fork)
+        addCenter(0.50f, 0.315f, 0.50f, 0.38f, 0f, 0.95f)
+        addPair(0.43f, 0.355f, 0.455f, 0.415f, -22f, scale = 0.95f)
+        addPair(0.36f, 0.415f, 0.405f, 0.465f, -48f, scale = 0.95f)
+        addPair(0.42f, 0.495f, 0.455f, 0.545f, -32f, scale = 0.95f)
 
-        // 8. Lowest hanging inner cluster
-        addPair(0.36f, 0.72f, 0.40f, 0.68f, -160f, scale = 0.95f)
-        addPair(0.42f, 0.68f, 0.45f, 0.65f, -170f, scale = 0.95f)
+        // 8. Hanging Inner Lower Cluster
+        addPair(0.365f, 0.715f, 0.405f, 0.675f, -162f, scale = 0.95f)
+        addPair(0.425f, 0.675f, 0.455f, 0.645f, -172f, scale = 0.95f)
 
-        // Extra outer symmetry fillers for lush full-canopy support
-        addPair(0.18f, 0.15f, 0.24f, 0.21f, -45f, scale = 1.0f)
-        addPair(0.08f, 0.43f, 0.15f, 0.45f, -100f, scale = 1.0f)
-        addPair(0.13f, 0.62f, 0.20f, 0.60f, -130f, scale = 1.0f)
-        addPair(0.25f, 0.76f, 0.31f, 0.71f, -150f, scale = 1.0f)
+        // Symmetrical Canopy Dense Accents
+        addPair(0.18f, 0.16f, 0.245f, 0.22f, -46f, scale = 1.0f)
+        addPair(0.08f, 0.44f, 0.145f, 0.46f, -102f, scale = 1.0f)
+        addPair(0.13f, 0.63f, 0.195f, 0.61f, -132f, scale = 1.0f)
+        addPair(0.25f, 0.77f, 0.305f, 0.72f, -152f, scale = 1.0f)
 
         list
     }
 
     /**
-     * Builds and returns the Bodhi tree wood branches matching the reference image.
+     * Builds and returns all hand-carved Bodhi tree wood paths matching the uploaded image:
+     * deep fluted root pedestal, twin rising trunks, organic arching boughs, chiseled bark
+     * fissures, and satin wood highlights.
      */
     fun buildTreePaths(width: Float, height: Float): TreePaths {
-        val trunkBaseX = width * 0.50f
-        val trunkBaseY = height * 0.88f
-        val mainForkY = height * 0.56f
+        val centerX = width * 0.50f
+        val groundY = height * 0.88f
+        val trunkBaseY = height * 0.83f
+        val lowerForkY = height * 0.64f
+        val midForkY = height * 0.51f
+        val upperForkY = height * 0.36f
+        val crownForkY = height * 0.22f
 
-        // 1. Trunk Path with Natural Flaring Base
-        val trunkPath = Path().apply {
-            // Left ground root flare
-            moveTo(trunkBaseX - (width * 0.20f), trunkBaseY)
+        // 1. Trunk Silhouette Path (Fluted trunk body with flared base)
+        val trunkSilhouette = Path().apply {
+            // Left base flare to root collar
+            moveTo(centerX - (width * 0.18f), groundY)
             cubicTo(
-                trunkBaseX - (width * 0.12f), trunkBaseY - (height * 0.015f),
-                trunkBaseX - (width * 0.07f), trunkBaseY - (height * 0.045f),
-                trunkBaseX - (width * 0.045f), height * 0.78f
+                centerX - (width * 0.10f), groundY - (height * 0.02f),
+                centerX - (width * 0.055f), trunkBaseY,
+                centerX - (width * 0.038f), lowerForkY
             )
-            // Taper up to fork
+            // Left mid-trunk to twin branch split
             cubicTo(
-                trunkBaseX - (width * 0.040f), height * 0.68f,
-                trunkBaseX - (width * 0.035f), height * 0.60f,
-                trunkBaseX - (width * 0.025f), mainForkY
+                centerX - (width * 0.032f), midForkY,
+                centerX - (width * 0.024f), upperForkY,
+                centerX - (width * 0.016f), crownForkY
             )
-            // Fork center top
-            lineTo(trunkBaseX + (width * 0.025f), mainForkY)
-            // Right taper down
+            // Apex center fork
+            lineTo(centerX + (width * 0.016f), crownForkY)
+            // Right mid-trunk back down
             cubicTo(
-                trunkBaseX + (width * 0.035f), height * 0.60f,
-                trunkBaseX + (width * 0.040f), height * 0.68f,
-                trunkBaseX + (width * 0.045f), height * 0.78f
+                centerX + (width * 0.024f), upperForkY,
+                centerX + (width * 0.032f), midForkY,
+                centerX + (width * 0.038f), lowerForkY
             )
-            // Right ground root flare
+            // Right base flare to root collar
             cubicTo(
-                trunkBaseX + (width * 0.07f), trunkBaseY - (height * 0.045f),
-                trunkBaseX + (width * 0.12f), trunkBaseY - (height * 0.015f),
-                trunkBaseX + (width * 0.20f), trunkBaseY
+                centerX + (width * 0.055f), trunkBaseY,
+                centerX + (width * 0.10f), groundY - (height * 0.02f),
+                centerX + (width * 0.18f), groundY
             )
-            // Sculpted base bottom edge matching natural gnarly root collar
+            // Bottom root contact contour
             cubicTo(
-                trunkBaseX + (width * 0.12f), trunkBaseY - (height * 0.005f),
-                trunkBaseX + (width * 0.05f), trunkBaseY + (height * 0.005f),
-                trunkBaseX, trunkBaseY + (height * 0.003f)
-            )
-            cubicTo(
-                trunkBaseX - (width * 0.05f), trunkBaseY + (height * 0.005f),
-                trunkBaseX - (width * 0.12f), trunkBaseY - (height * 0.005f),
-                trunkBaseX - (width * 0.20f), trunkBaseY
+                centerX + (width * 0.08f), groundY + (height * 0.006f),
+                centerX - (width * 0.08f), groundY + (height * 0.006f),
+                centerX - (width * 0.18f), groundY
             )
             close()
         }
 
-        // 2. Individual Root Tendrils (Matching the reference artwork's roots)
-        val rootTendrilsPath = Path().apply {
-            // Far Left root tendril
-            moveTo(trunkBaseX - (width * 0.08f), height * 0.83f)
+        // 2. Trunk Fissures & Deep Bark Crevices (The sculpted carved wood relief lines)
+        val trunkFissures = Path().apply {
+            // Centerline division of twin trunks
+            moveTo(centerX, crownForkY)
             cubicTo(
-                trunkBaseX - (width * 0.14f), height * 0.85f,
-                trunkBaseX - (width * 0.19f), height * 0.87f,
-                trunkBaseX - (width * 0.24f), trunkBaseY + (height * 0.008f)
+                centerX - (width * 0.003f), upperForkY,
+                centerX + (width * 0.002f), midForkY,
+                centerX, lowerForkY
+            )
+            cubicTo(
+                centerX - (width * 0.002f), trunkBaseY,
+                centerX, groundY - (height * 0.01f),
+                centerX, groundY + (height * 0.012f)
             )
 
-            // Mid Left root tendril
-            moveTo(trunkBaseX - (width * 0.05f), height * 0.82f)
+            // Left bark grooves flowing down into roots
+            moveTo(centerX - (width * 0.012f), crownForkY + (height * 0.04f))
             cubicTo(
-                trunkBaseX - (width * 0.09f), height * 0.84f,
-                trunkBaseX - (width * 0.13f), height * 0.87f,
-                trunkBaseX - (width * 0.16f), trunkBaseY + (height * 0.014f)
+                centerX - (width * 0.018f), upperForkY,
+                centerX - (width * 0.022f), midForkY,
+                centerX - (width * 0.026f), lowerForkY
+            )
+            cubicTo(
+                centerX - (width * 0.038f), trunkBaseY,
+                centerX - (width * 0.075f), groundY - 2f,
+                centerX - (width * 0.12f), groundY + (height * 0.012f)
             )
 
-            // Inner Left root tendril
-            moveTo(trunkBaseX - (width * 0.02f), height * 0.83f)
+            // Right bark grooves flowing down into roots
+            moveTo(centerX + (width * 0.012f), crownForkY + (height * 0.04f))
             cubicTo(
-                trunkBaseX - (width * 0.04f), height * 0.85f,
-                trunkBaseX - (width * 0.06f), height * 0.88f,
-                trunkBaseX - (width * 0.08f), trunkBaseY + (height * 0.018f)
+                centerX + (width * 0.018f), upperForkY,
+                centerX + (width * 0.022f), midForkY,
+                centerX + (width * 0.026f), lowerForkY
+            )
+            cubicTo(
+                centerX + (width * 0.038f), trunkBaseY,
+                centerX + (width * 0.075f), groundY - 2f,
+                centerX + (width * 0.12f), groundY + (height * 0.012f)
             )
 
-            // Center taproot tendril
-            moveTo(trunkBaseX, height * 0.83f)
+            // Outer left bark furrow
+            moveTo(centerX - (width * 0.030f), lowerForkY + (height * 0.04f))
             cubicTo(
-                trunkBaseX - (width * 0.01f), height * 0.86f,
-                trunkBaseX + (width * 0.01f), height * 0.88f,
-                trunkBaseX, trunkBaseY + (height * 0.020f)
+                centerX - (width * 0.045f), trunkBaseY,
+                centerX - (width * 0.11f), groundY,
+                centerX - (width * 0.17f), groundY + (height * 0.008f)
             )
 
-            // Inner Right root tendril
-            moveTo(trunkBaseX + (width * 0.02f), height * 0.83f)
+            // Outer right bark furrow
+            moveTo(centerX + (width * 0.030f), lowerForkY + (height * 0.04f))
             cubicTo(
-                trunkBaseX + (width * 0.04f), height * 0.85f,
-                trunkBaseX + (width * 0.06f), height * 0.88f,
-                trunkBaseX + (width * 0.08f), trunkBaseY + (height * 0.018f)
-            )
-
-            // Mid Right root tendril
-            moveTo(trunkBaseX + (width * 0.05f), height * 0.82f)
-            cubicTo(
-                trunkBaseX + (width * 0.09f), height * 0.84f,
-                trunkBaseX + (width * 0.13f), height * 0.87f,
-                trunkBaseX + (width * 0.16f), trunkBaseY + (height * 0.014f)
-            )
-
-            // Far Right root tendril
-            moveTo(trunkBaseX + (width * 0.08f), height * 0.83f)
-            cubicTo(
-                trunkBaseX + (width * 0.14f), height * 0.85f,
-                trunkBaseX + (width * 0.19f), height * 0.87f,
-                trunkBaseX + (width * 0.24f), trunkBaseY + (height * 0.008f)
-            )
-        }
-
-        // 3. Main Heavy Boughs Path
-        val heavyBoughsPath = Path().apply {
-            // Central rising vertical stem
-            moveTo(trunkBaseX, mainForkY)
-            cubicTo(
-                trunkBaseX, height * 0.44f,
-                trunkBaseX, height * 0.28f,
-                trunkBaseX, height * 0.12f
-            )
-
-            // Left Lower Major Arch
-            moveTo(trunkBaseX - (width * 0.02f), mainForkY + (height * 0.02f))
-            cubicTo(
-                trunkBaseX - (width * 0.12f), height * 0.64f,
-                width * 0.32f, height * 0.70f,
-                width * 0.24f, height * 0.64f
-            )
-
-            // Right Lower Major Arch
-            moveTo(trunkBaseX + (width * 0.02f), mainForkY + (height * 0.02f))
-            cubicTo(
-                trunkBaseX + (width * 0.12f), height * 0.64f,
-                width * 0.68f, height * 0.70f,
-                width * 0.76f, height * 0.64f
-            )
-
-            // Left Mid Equatorial Arch
-            moveTo(trunkBaseX - (width * 0.02f), mainForkY - (height * 0.03f))
-            cubicTo(
-                width * 0.38f, height * 0.50f,
-                width * 0.24f, height * 0.52f,
-                width * 0.18f, height * 0.44f
-            )
-
-            // Right Mid Equatorial Arch
-            moveTo(trunkBaseX + (width * 0.02f), mainForkY - (height * 0.03f))
-            cubicTo(
-                width * 0.62f, height * 0.50f,
-                width * 0.76f, height * 0.52f,
-                width * 0.82f, height * 0.44f
-            )
-
-            // Left Upper Shoulder Arch
-            moveTo(trunkBaseX - (width * 0.015f), height * 0.42f)
-            cubicTo(
-                width * 0.42f, height * 0.34f,
-                width * 0.32f, height * 0.26f,
-                width * 0.24f, height * 0.22f
-            )
-
-            // Right Upper Shoulder Arch
-            moveTo(trunkBaseX + (width * 0.015f), height * 0.42f)
-            cubicTo(
-                width * 0.58f, height * 0.34f,
-                width * 0.68f, height * 0.26f,
-                width * 0.76f, height * 0.22f
+                centerX + (width * 0.045f), trunkBaseY,
+                centerX + (width * 0.11f), groundY,
+                centerX + (width * 0.17f), groundY + (height * 0.008f)
             )
         }
 
-        // 4. Sub-branches and twigs leading to the leaf nodes
-        val twigsPath = Path().apply {
+        // 3. Trunk Satin Wood Highlights (Top specular ridges)
+        val trunkHighlights = Path().apply {
+            // Left twin trunk highlight ridge
+            moveTo(centerX - (width * 0.007f), crownForkY + (height * 0.02f))
+            cubicTo(
+                centerX - (width * 0.010f), upperForkY,
+                centerX - (width * 0.012f), midForkY,
+                centerX - (width * 0.014f), lowerForkY
+            )
+            cubicTo(
+                centerX - (width * 0.018f), trunkBaseY,
+                centerX - (width * 0.035f), groundY - 4f,
+                centerX - (width * 0.06f), groundY + 2f
+            )
+
+            // Right twin trunk highlight ridge
+            moveTo(centerX + (width * 0.007f), crownForkY + (height * 0.02f))
+            cubicTo(
+                centerX + (width * 0.010f), upperForkY,
+                centerX + (width * 0.012f), midForkY,
+                centerX + (width * 0.014f), lowerForkY
+            )
+            cubicTo(
+                centerX + (width * 0.018f), trunkBaseY,
+                centerX + (width * 0.035f), groundY - 4f,
+                centerX + (width * 0.06f), groundY + 2f
+            )
+        }
+
+        // 4. Gnarled Splayed Root Pedestal
+        val gnarledRoots = Path().apply {
+            // Far Left outer root
+            moveTo(centerX - (width * 0.06f), trunkBaseY + (height * 0.02f))
+            cubicTo(
+                centerX - (width * 0.12f), groundY - (height * 0.01f),
+                centerX - (width * 0.18f), groundY,
+                centerX - (width * 0.24f), groundY + (height * 0.012f)
+            )
+
+            // Mid Left root
+            moveTo(centerX - (width * 0.035f), trunkBaseY + (height * 0.025f))
+            cubicTo(
+                centerX - (width * 0.08f), groundY - (height * 0.005f),
+                centerX - (width * 0.12f), groundY + (height * 0.005f),
+                centerX - (width * 0.15f), groundY + (height * 0.018f)
+            )
+
+            // Center Left rootlet
+            moveTo(centerX - (width * 0.015f), groundY - (height * 0.015f))
+            cubicTo(
+                centerX - (width * 0.04f), groundY,
+                centerX - (width * 0.06f), groundY + (height * 0.010f),
+                centerX - (width * 0.07f), groundY + (height * 0.022f)
+            )
+
+            // Center Right rootlet
+            moveTo(centerX + (width * 0.015f), groundY - (height * 0.015f))
+            cubicTo(
+                centerX + (width * 0.04f), groundY,
+                centerX + (width * 0.06f), groundY + (height * 0.010f),
+                centerX + (width * 0.07f), groundY + (height * 0.022f)
+            )
+
+            // Mid Right root
+            moveTo(centerX + (width * 0.035f), trunkBaseY + (height * 0.025f))
+            cubicTo(
+                centerX + (width * 0.08f), groundY - (height * 0.005f),
+                centerX + (width * 0.12f), groundY + (height * 0.005f),
+                centerX + (width * 0.15f), groundY + (height * 0.018f)
+            )
+
+            // Far Right outer root
+            moveTo(centerX + (width * 0.06f), trunkBaseY + (height * 0.02f))
+            cubicTo(
+                centerX + (width * 0.12f), groundY - (height * 0.01f),
+                centerX + (width * 0.18f), groundY,
+                centerX + (width * 0.24f), groundY + (height * 0.012f)
+            )
+        }
+
+        // Root highlights
+        val rootHighlights = Path().apply {
+            moveTo(centerX - (width * 0.05f), trunkBaseY + (height * 0.025f))
+            cubicTo(
+                centerX - (width * 0.11f), groundY - (height * 0.008f),
+                centerX - (width * 0.16f), groundY,
+                centerX - (width * 0.21f), groundY + (height * 0.008f)
+            )
+            moveTo(centerX + (width * 0.05f), trunkBaseY + (height * 0.025f))
+            cubicTo(
+                centerX + (width * 0.11f), groundY - (height * 0.008f),
+                centerX + (width * 0.16f), groundY,
+                centerX + (width * 0.21f), groundY + (height * 0.008f)
+            )
+        }
+
+        // 5. Major Heavy Arching Boughs (The 4 core radiating tiers of the artwork)
+        val majorBoughsShadow = Path().apply {
+            // Tier 1: Lower Hanging Cradle Boughs (Left & Right)
+            moveTo(centerX - (width * 0.035f), lowerForkY)
+            cubicTo(
+                centerX - (width * 0.14f), lowerForkY + (height * 0.03f),
+                width * 0.32f, height * 0.72f,
+                width * 0.23f, height * 0.65f
+            )
+            moveTo(centerX + (width * 0.035f), lowerForkY)
+            cubicTo(
+                centerX + (width * 0.14f), lowerForkY + (height * 0.03f),
+                width * 0.68f, height * 0.72f,
+                width * 0.77f, height * 0.65f
+            )
+
+            // Tier 2: Mid Equatorial Boughs (Left & Right)
+            moveTo(centerX - (width * 0.030f), midForkY)
+            cubicTo(
+                width * 0.36f, height * 0.50f,
+                width * 0.24f, height * 0.53f,
+                width * 0.16f, height * 0.44f
+            )
+            moveTo(centerX + (width * 0.030f), midForkY)
+            cubicTo(
+                width * 0.64f, height * 0.50f,
+                width * 0.76f, height * 0.53f,
+                width * 0.84f, height * 0.44f
+            )
+
+            // Tier 3: Upper Shoulder Boughs (Left & Right)
+            moveTo(centerX - (width * 0.022f), upperForkY)
+            cubicTo(
+                width * 0.38f, height * 0.35f,
+                width * 0.30f, height * 0.28f,
+                width * 0.22f, height * 0.22f
+            )
+            moveTo(centerX + (width * 0.022f), upperForkY)
+            cubicTo(
+                width * 0.62f, height * 0.35f,
+                width * 0.70f, height * 0.28f,
+                width * 0.78f, height * 0.22f
+            )
+
+            // Tier 4: Crown Arches & Apex Split
+            moveTo(centerX - (width * 0.015f), crownForkY)
+            cubicTo(
+                centerX - (width * 0.08f), height * 0.18f,
+                width * 0.40f, height * 0.14f,
+                width * 0.36f, height * 0.12f
+            )
+            moveTo(centerX + (width * 0.015f), crownForkY)
+            cubicTo(
+                centerX + (width * 0.08f), height * 0.18f,
+                width * 0.60f, height * 0.14f,
+                width * 0.64f, height * 0.12f
+            )
+
+            // Crown Pinnacle central stem
+            moveTo(centerX, crownForkY)
+            lineTo(centerX, height * 0.10f)
+        }
+
+        // Major Boughs Body Path (same curves with slightly tighter stroke)
+        val majorBoughsBody = majorBoughsShadow
+
+        // Major Boughs Highlights (warm top ridges)
+        val majorBoughsHighlight = Path().apply {
+            // Lower cradle boughs top highlights
+            moveTo(centerX - (width * 0.035f), lowerForkY - 2f)
+            cubicTo(
+                centerX - (width * 0.14f), lowerForkY + (height * 0.025f),
+                width * 0.32f, height * 0.71f,
+                width * 0.23f, height * 0.645f
+            )
+            moveTo(centerX + (width * 0.035f), lowerForkY - 2f)
+            cubicTo(
+                centerX + (width * 0.14f), lowerForkY + (height * 0.025f),
+                width * 0.68f, height * 0.71f,
+                width * 0.77f, height * 0.645f
+            )
+
+            // Mid equatorial boughs top highlights
+            moveTo(centerX - (width * 0.030f), midForkY - 2f)
+            cubicTo(
+                width * 0.36f, height * 0.495f,
+                width * 0.24f, height * 0.525f,
+                width * 0.16f, height * 0.435f
+            )
+            moveTo(centerX + (width * 0.030f), midForkY - 2f)
+            cubicTo(
+                width * 0.64f, height * 0.495f,
+                width * 0.76f, height * 0.525f,
+                width * 0.84f, height * 0.435f
+            )
+
+            // Upper shoulder boughs top highlights
+            moveTo(centerX - (width * 0.022f), upperForkY - 2f)
+            cubicTo(
+                width * 0.38f, height * 0.345f,
+                width * 0.30f, height * 0.275f,
+                width * 0.22f, height * 0.215f
+            )
+            moveTo(centerX + (width * 0.022f), upperForkY - 2f)
+            cubicTo(
+                width * 0.62f, height * 0.345f,
+                width * 0.70f, height * 0.275f,
+                width * 0.78f, height * 0.215f
+            )
+        }
+
+        // 6. Secondary Mid-Boughs (Branch forks branching off major limbs)
+        val midBoughsBody = Path().apply {
+            // Lower cradle secondary forks curling downward & upward
+            moveTo(width * 0.32f, height * 0.71f)
+            cubicTo(width * 0.27f, height * 0.74f, width * 0.22f, height * 0.76f, width * 0.18f, height * 0.73f)
+
+            moveTo(width * 0.68f, height * 0.71f)
+            cubicTo(width * 0.73f, height * 0.74f, width * 0.78f, height * 0.76f, width * 0.82f, height * 0.73f)
+
+            moveTo(width * 0.26f, height * 0.67f)
+            cubicTo(width * 0.23f, height * 0.60f, width * 0.20f, height * 0.56f, width * 0.16f, height * 0.52f)
+
+            moveTo(width * 0.74f, height * 0.67f)
+            cubicTo(width * 0.77f, height * 0.60f, width * 0.80f, height * 0.56f, width * 0.84f, height * 0.52f)
+
+            // Mid equatorial secondary forks
+            moveTo(width * 0.34f, height * 0.50f)
+            cubicTo(width * 0.30f, height * 0.44f, width * 0.26f, height * 0.40f, width * 0.20f, height * 0.36f)
+
+            moveTo(width * 0.66f, height * 0.50f)
+            cubicTo(width * 0.70f, height * 0.44f, width * 0.74f, height * 0.40f, width * 0.80f, height * 0.36f)
+
+            // Upper shoulder secondary forks
+            moveTo(width * 0.36f, height * 0.34f)
+            cubicTo(width * 0.32f, height * 0.28f, width * 0.28f, height * 0.24f, width * 0.23f, height * 0.18f)
+
+            moveTo(width * 0.64f, height * 0.34f)
+            cubicTo(width * 0.68f, height * 0.28f, width * 0.72f, height * 0.24f, width * 0.77f, height * 0.18f)
+
+            // Crown secondary arches
+            moveTo(width * 0.44f, height * 0.16f)
+            cubicTo(width * 0.42f, height * 0.13f, width * 0.40f, height * 0.10f, width * 0.38f, height * 0.08f)
+
+            moveTo(width * 0.56f, height * 0.16f)
+            cubicTo(width * 0.58f, height * 0.13f, width * 0.60f, height * 0.10f, width * 0.62f, height * 0.08f)
+        }
+
+        val midBoughsHighlight = Path().apply {
+            moveTo(width * 0.32f, height * 0.708f)
+            cubicTo(width * 0.27f, height * 0.738f, width * 0.22f, height * 0.758f, width * 0.18f, height * 0.728f)
+            moveTo(width * 0.68f, height * 0.708f)
+            cubicTo(width * 0.73f, height * 0.738f, width * 0.78f, height * 0.758f, width * 0.82f, height * 0.728f)
+        }
+
+        // 7. Fine Petioles & Twigs leading smoothly into every Bodhi leaf slot
+        val fineTwigs = Path().apply {
             LEAF_SLOTS.forEach { slot ->
                 val startX = slot.branchStartX * width
                 val startY = slot.branchStartY * height
@@ -275,13 +479,25 @@ object BodhiTreeGeometry {
                 val endY = slot.yRatio * height
 
                 moveTo(startX, startY)
-                val midX = (startX + endX) * 0.5f + ((endY - startY) * 0.12f)
-                val midY = (startY + endY) * 0.5f - ((endX - startX) * 0.12f)
+                val midX = (startX + endX) * 0.5f + ((endY - startY) * 0.14f)
+                val midY = (startY + endY) * 0.5f - ((endX - startX) * 0.14f)
                 quadraticTo(midX, midY, endX, endY)
             }
         }
 
-        return TreePaths(trunkPath, heavyBoughsPath, twigsPath, rootTendrilsPath)
+        return TreePaths(
+            trunkSilhouettePath = trunkSilhouette,
+            trunkFissuresPath = trunkFissures,
+            trunkHighlightsPath = trunkHighlights,
+            gnarledRootsPath = gnarledRoots,
+            rootHighlightsPath = rootHighlights,
+            majorBoughsShadowPath = majorBoughsShadow,
+            majorBoughsBodyPath = majorBoughsBody,
+            majorBoughsHighlightPath = majorBoughsHighlight,
+            midBoughsBodyPath = midBoughsBody,
+            midBoughsHighlightPath = midBoughsHighlight,
+            fineTwigsPath = fineTwigs
+        )
     }
 
     /**
@@ -333,10 +549,3 @@ object BodhiTreeGeometry {
         }
     }
 }
-
-data class TreePaths(
-    val trunkPath: Path,
-    val heavyBoughsPath: Path,
-    val twigsPath: Path,
-    val rootTendrilsPath: Path
-)

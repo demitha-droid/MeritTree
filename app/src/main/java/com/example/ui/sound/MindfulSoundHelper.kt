@@ -19,6 +19,27 @@ object MindfulSoundHelper {
 
     private val scope = CoroutineScope(Dispatchers.Default)
 
+    private const val SAMPLE_RATE = 44100
+    private const val DURATION_SECONDS = 1.8
+
+    // Precomputed once lazily in background so play is instant with 0 allocations
+    private val precomputedSamples: ShortArray by lazy {
+        val numSamples = (SAMPLE_RATE * DURATION_SECONDS).toInt()
+        val samples = ShortArray(numSamples)
+        val freqFundamental = 432.0
+        val freqHarmonic = 864.0
+
+        for (i in 0 until numSamples) {
+            val time = i.toDouble() / SAMPLE_RATE
+            val envelope = exp(-2.8 * time)
+            val wave = (0.75 * sin(2.0 * Math.PI * freqFundamental * time)) +
+                    (0.25 * sin(2.0 * Math.PI * freqHarmonic * time))
+            val sampleVal = (wave * envelope * Short.MAX_VALUE * 0.45).toInt()
+            samples[i] = sampleVal.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+        }
+        samples
+    }
+
     /**
      * Synthesizes and plays a peaceful Tibetan singing bowl / temple bell tone.
      * Uses 432Hz fundamental with gentle 864Hz harmonic overtone and exponential decay.
@@ -26,25 +47,7 @@ object MindfulSoundHelper {
     fun playSingingBowlChime() {
         scope.launch {
             try {
-                val sampleRate = 44100
-                val durationSeconds = 1.8
-                val numSamples = (sampleRate * durationSeconds).toInt()
-                val samples = ShortArray(numSamples)
-
-                val freqFundamental = 432.0
-                val freqHarmonic = 864.0
-
-                for (i in 0 until numSamples) {
-                    val time = i.toDouble() / sampleRate
-                    // Exponential gentle fade envelope
-                    val envelope = exp(-2.8 * time)
-                    // Fundamental + harmonic overtone
-                    val wave = (0.75 * sin(2.0 * Math.PI * freqFundamental * time)) +
-                            (0.25 * sin(2.0 * Math.PI * freqHarmonic * time))
-                    val sampleVal = (wave * envelope * Short.MAX_VALUE * 0.45).toInt()
-                    samples[i] = sampleVal.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-                }
-
+                val samples = precomputedSamples
                 val bufferSize = samples.size * 2
                 val audioTrack = AudioTrack.Builder()
                     .setAudioAttributes(
@@ -56,7 +59,7 @@ object MindfulSoundHelper {
                     .setAudioFormat(
                         AudioFormat.Builder()
                             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(sampleRate)
+                            .setSampleRate(SAMPLE_RATE)
                             .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                             .build()
                     )
@@ -68,7 +71,7 @@ object MindfulSoundHelper {
                 audioTrack.play()
 
                 // Clean up track after play finishes
-                kotlinx.coroutines.delay((durationSeconds * 1000).toLong() + 200)
+                kotlinx.coroutines.delay((DURATION_SECONDS * 1000).toLong() + 200)
                 audioTrack.release()
             } catch (_: Exception) {
                 // Ignore any audio device issues gracefully

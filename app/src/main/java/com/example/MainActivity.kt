@@ -113,6 +113,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     val newlySproutedId by viewModel.newlySproutedId.collectAsStateWithLifecycle()
     val filterCategory by viewModel.filterCategory.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
+    val isBackupLoading by viewModel.isBackupLoading.collectAsStateWithLifecycle()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
@@ -301,54 +302,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             ) {
                 when (activeTab) {
                     BodhiTab.TREE -> {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            BodhiTreeCanvas(
-                                merits = merits,
-                                newlySproutedId = newlySproutedId,
-                                onLeafClick = { clickedMerit ->
-                                    viewModel.selectMerit(clickedMerit)
-                                },
-                                onEmptyLeafClick = { slotId ->
-                                    targetSlotId = slotId
-                                    showAddDialog = true
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-
-                            // Peaceful Guidance Banner
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp,
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                ),
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 10.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Spa,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = strings.guidanceBanner,
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontStyle = FontStyle.Italic,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    )
-                                }
-                            }
-                        }
+                        BodhiTreeCanvas(
+                            merits = merits,
+                            newlySproutedId = newlySproutedId,
+                            onLeafClick = { clickedMerit ->
+                                viewModel.selectMerit(clickedMerit)
+                            },
+                            onEmptyLeafClick = { slotId ->
+                                targetSlotId = slotId
+                                showAddDialog = true
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                     BodhiTab.JOURNAL -> {
                         MeritJournalList(
@@ -370,7 +335,12 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                             onHapticToggle = { viewModel.setHapticEnabled(it) },
                             onPlayTestChime = { viewModel.triggerBellChime() },
                             onOpenDedication = { showDedicationDialog = true },
-                            allMerits = allMerits
+                            allMerits = allMerits,
+                            isBackupLoading = isBackupLoading,
+                            onExportBackup = { uri, cb -> viewModel.exportBackup(uri, cb) },
+                            onInspectBackup = { uri, cb -> viewModel.inspectBackup(uri, cb) },
+                            onRestoreBackup = { uri, replaceAll, cb -> viewModel.restoreBackup(uri, replaceAll, cb) },
+                            onShareBackup = { onReady, onError -> viewModel.shareBackup(onReady, onError) }
                         )
                     }
                 }

@@ -32,6 +32,7 @@ enum class BodhiTab {
 class BodhiViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: MeritRepository
+    private val backupManager: com.example.data.backup.MeritBackupManager
     private val prefs = application.getSharedPreferences("bodhi_settings", Context.MODE_PRIVATE)
 
     private val _themeMode = MutableStateFlow(
@@ -50,9 +51,13 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     private val _isHapticEnabled = MutableStateFlow(prefs.getBoolean("haptic_enabled", true))
     val isHapticEnabled: StateFlow<Boolean> = _isHapticEnabled.asStateFlow()
 
+    private val _isBackupLoading = MutableStateFlow(false)
+    val isBackupLoading: StateFlow<Boolean> = _isBackupLoading.asStateFlow()
+
     init {
         val database = BodhiDatabase.getDatabase(application)
         repository = MeritRepository(database.meritDao())
+        backupManager = com.example.data.backup.MeritBackupManager(application, repository)
     }
 
     val allMerits: StateFlow<List<MeritEntity>> = repository.allMerits
@@ -197,6 +202,82 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.delete(merit)
             triggerHaptic()
+        }
+    }
+
+    fun exportBackup(uri: Uri, onComplete: (Result<com.example.data.backup.BackupSummary>) -> Unit) {
+        viewModelScope.launch {
+            _isBackupLoading.value = true
+            val context = getApplication<Application>()
+            val result = try {
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    backupManager.createBackup(os)
+                } ?: Result.failure(Exception("Cannot open destination file"))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+            _isBackupLoading.value = false
+            if (result.isSuccess) {
+                triggerBellChime()
+                triggerHaptic(strong = true)
+            }
+            onComplete(result)
+        }
+    }
+
+    fun inspectBackup(uri: Uri, onComplete: (Result<com.example.data.backup.BackupSummary>) -> Unit) {
+        viewModelScope.launch {
+            val context = getApplication<Application>()
+            val result = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    backupManager.inspectBackup(inputStream)
+                } ?: Result.failure(Exception("Cannot open backup file"))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+            onComplete(result)
+        }
+    }
+
+    fun restoreBackup(uri: Uri, replaceAll: Boolean, onComplete: (Result<com.example.data.backup.BackupSummary>) -> Unit) {
+        viewModelScope.launch {
+            _isBackupLoading.value = true
+            val context = getApplication<Application>()
+            val result = try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    backupManager.restoreBackup(inputStream, replaceAll)
+                } ?: Result.failure(Exception("Cannot read backup file"))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+            _isBackupLoading.value = false
+            if (result.isSuccess) {
+                triggerBellChime()
+                triggerHaptic(strong = true)
+            }
+            onComplete(result)
+        }
+    }
+
+    fun shareBackup(onReady: (Uri) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            _isBackupLoading.value = true
+            val tempFileResult = backupManager.createBackupTempFile()
+            _isBackupLoading.value = false
+            tempFileResult.fold(
+                onSuccess = { file ->
+                    val context = getApplication<Application>()
+                    val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                    onReady(contentUri)
+                },
+                onFailure = { err ->
+                    onError(err.localizedMessage ?: "Failed to generate backup")
+                }
+            )
         }
     }
 }

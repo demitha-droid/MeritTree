@@ -12,6 +12,12 @@ class MeritRepository(private val meritDao: MeritDao) {
 
     suspend fun insert(merit: MeritEntity): Long = meritDao.insertMerit(merit)
 
+    suspend fun insertAll(merits: List<MeritEntity>): List<Long> = meritDao.insertMerits(merits)
+
+    suspend fun getAllMeritsSync(): List<MeritEntity> = meritDao.getAllMeritsSync()
+
+    suspend fun clearAll() = meritDao.clearAllMerits()
+
     suspend fun update(merit: MeritEntity) = meritDao.updateMerit(merit)
 
     suspend fun delete(merit: MeritEntity) = meritDao.deleteMerit(merit)

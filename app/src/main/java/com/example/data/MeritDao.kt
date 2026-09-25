@@ -25,6 +25,12 @@ interface MeritDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMerit(merit: MeritEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMerits(merits: List<MeritEntity>): List<Long>
+
+    @Query("SELECT * FROM merits ORDER BY timestamp ASC")
+    suspend fun getAllMeritsSync(): List<MeritEntity>
+
     @Update
     suspend fun updateMerit(merit: MeritEntity)
 
@@ -33,4 +39,7 @@ interface MeritDao {
 
     @Query("DELETE FROM merits WHERE id = :id")
     suspend fun deleteMeritById(id: Long)
+
+    @Query("DELETE FROM merits")
+    suspend fun clearAllMerits()
 }

@@ -142,6 +142,66 @@ class AppStrings(val language: AppLanguage) {
     // Journal
     val journalEmpty = if (isSinhala) "තවමත් පින්කම් සටහන් කර නොමැත" else "No merits recorded yet"
     val journalEmptySub = if (isSinhala) "පළමු පින් පත දළු ලවා ඔබේ පින් පොත අරඹන්න" else "Sprout your first leaf to begin your merit journal"
+
+    // Backup & Restore (User Request)
+    val backupRestoreSection = if (isSinhala) "උපස්ථ සහ ප්‍රතිසාධනය (Backup & Restore)" else "Backup & Restore"
+    val backupRestoreSubtitle = if (isSinhala)
+        "ඔබගේ සියලු පින්කම් සටහන් සහ ඡායාරූප සුරක්ෂිතව ගොනුවක් ලෙස උපස්ථ හෝ ප්‍රතිසාධනය කරන්න"
+    else
+        "Safely backup and restore all your merit posts with attached photographs included"
+
+    val backupCardTitle = if (isSinhala) "සම්පූර්ණ උපස්ථයක් සාදන්න" else "Create Full Backup"
+    val backupCardDesc = if (isSinhala)
+        "සියලු පින් සටහන් සහ ඡායාරූප තනි සංයුක්ත ගොනුවක් ලෙස සුරකින්න හෝ වෙනත් තැනකට යවන්න"
+    else
+        "Package all posts and memory photos into a single portable backup file"
+
+    val backupSaveButton = if (isSinhala) "උපස්ථ ගොනුව සුරකින්න" else "Save Backup (.bodhibackup)"
+    val backupShareButton = if (isSinhala) "උපස්ථය බෙදාගන්න" else "Share Backup File"
+
+    val restoreCardTitle = if (isSinhala) "උපස්ථයකින් ප්‍රතිසාධනය කරන්න" else "Restore from Backup"
+    val restoreCardDesc = if (isSinhala)
+        "කලින් සුරකින ලද උපස්ථ ගොනුවකින් (.bodhibackup හෝ .zip) පින්කම් සහ ඡායාරූප නැවත ලබාගන්න"
+    else
+        "Restore merits and attached photographs from a previously saved backup file"
+
+    val restoreSelectButton = if (isSinhala) "උපස්ථ ගොනුව තෝරන්න" else "Select Backup File"
+
+    val restoreDialogTitle = if (isSinhala) "පින්කම් ප්‍රතිසාධනය තහවුරු කිරීම" else "Restore Merits & Media"
+    fun restoreFoundSummary(merits: Int, media: Int) = if (isSinhala)
+        "උපස්ථයේ පින්කම් $merits ක් සහ ඡායාරූප $media ක් අඩංගුයි."
+    else
+        "Backup contains $merits merit posts and $media memory photos."
+
+    val restoreModeQuestion = if (isSinhala) "ප්‍රතිසාධනය කළ යුතු ආකාරය තෝරන්න:" else "Choose restore mode:"
+    val restoreModeMerge = if (isSinhala) "දැනට ඇති ඒවාට එකතු කරන්න (Merge)" else "Append to existing merits (Merge)"
+    val restoreModeMergeDesc = if (isSinhala)
+        "දැනට බෝධි වෘක්ෂයේ ඇති පින්කම් එලෙසම තබා නව පින්කම් එක් කරයි"
+    else
+        "Keeps current leaves intact and adds restored merits to free branches"
+
+    val restoreModeReplace = if (isSinhala) "දැනට ඇති සියල්ල වෙනුවට ප්‍රතිස්ථාපනය (Replace All)" else "Replace all existing merits"
+    val restoreModeReplaceDesc = if (isSinhala)
+        "දැනට ඇති සියලු පින්කම් මකා දමා උපස්ථයේ ඇති තත්ත්වයටම පත් කරයි"
+    else
+        "Clears existing merits and restores the tree to exact backup state"
+
+    val restoreConfirmAction = if (isSinhala) "දැන් ප්‍රතිසාධනය කරන්න" else "Restore Now"
+    val backingUpMessage = if (isSinhala) "උපස්ථය සකසමින් පවතී..." else "Creating backup package..."
+    val restoringMessage = if (isSinhala) "පින්කම් ප්‍රතිසාධනය වෙමින් පවතී..." else "Restoring posts and media..."
+
+    fun backupSuccessMessage(merits: Int, media: Int) = if (isSinhala)
+        "සාර්ථකයි! පින්කම් $merits ක් සහ ඡායාරූප $media ක් උපස්ථ කරන ලදී."
+    else
+        "Success! Backed up $merits posts and $media photos."
+
+    fun restoreSuccessMessage(merits: Int, media: Int) = if (isSinhala)
+        "සාර්ථකයි! පින්කම් $merits ක් සහ ඡායාරූප $media ක් ප්‍රතිසාධනය කරන ලදී."
+    else
+        "Success! Restored $merits posts and $media photos."
+
+    val backupError = if (isSinhala) "උපස්ථය සෑදීම අසාර්ථක විය" else "Failed to create backup"
+    val restoreError = if (isSinhala) "ප්‍රතිසාධනය අසාර්ථක විය" else "Failed to restore backup"
 }
 
 val LocalAppStrings = compositionLocalOf { AppStrings(AppLanguage.ENGLISH) }
