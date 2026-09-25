@@ -124,6 +124,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
     var currentPickedPhotoUri by remember { mutableStateOf<String?>(null) }
+    var editPickedPhotoUri by remember { mutableStateOf<String?>(null) }
     var showDedicationDialog by remember { mutableStateOf(false) }
 
     // Pre-registered launcher at Activity root to avoid any IPC / registration latency on click
@@ -132,7 +133,12 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     ) { uri: Uri? ->
         if (uri != null) {
             val localPath = viewModel.saveImageLocally(uri)
-            currentPickedPhotoUri = localPath ?: uri.toString()
+            val path = localPath ?: uri.toString()
+            if (showAddDialog) {
+                currentPickedPhotoUri = path
+            } else {
+                editPickedPhotoUri = path
+            }
         }
     }
 
@@ -348,14 +354,34 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         }
     }
 
-    // Detail Sheet for clicked leaf / post
+    // Detail Sheet for clicked leaf / post (Full Screen with Edit Mode)
     selectedMerit?.let { merit ->
         MeritDetailSheet(
             merit = merit,
-            onDismiss = { viewModel.selectMerit(null) },
+            onDismiss = {
+                editPickedPhotoUri = null
+                viewModel.selectMerit(null)
+            },
             onDelete = {
                 viewModel.deleteMerit(it)
-            }
+            },
+            onUpdate = { targetMerit, newTitle, newCategory, newDesc, newDedication, newImageUri ->
+                viewModel.updateMerit(
+                    merit = targetMerit,
+                    newTitle = newTitle,
+                    newCategory = newCategory,
+                    newDescription = newDesc,
+                    newDedication = newDedication,
+                    newImageUri = newImageUri
+                )
+                editPickedPhotoUri = null
+            },
+            onPickPhoto = {
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            pickedPhotoUri = editPickedPhotoUri
         )
     }
 

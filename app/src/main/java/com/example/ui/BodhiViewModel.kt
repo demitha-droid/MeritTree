@@ -254,6 +254,31 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateMerit(
+        merit: MeritEntity,
+        newTitle: String,
+        newCategory: MeritCategory,
+        newDescription: String,
+        newDedication: String,
+        newImageUri: String?
+    ) {
+        viewModelScope.launch {
+            val updated = merit.copy(
+                title = newTitle.trim(),
+                category = newCategory.name,
+                description = newDescription.trim(),
+                dedication = newDedication.trim(),
+                imageUri = newImageUri
+            )
+            repository.update(updated)
+            if (_selectedMerit.value?.id == merit.id) {
+                _selectedMerit.value = updated
+            }
+            triggerBellChime()
+            triggerHaptic(strong = true)
+        }
+    }
+
     fun deleteMerit(merit: MeritEntity) {
         viewModelScope.launch {
             if (_selectedMerit.value?.id == merit.id) {

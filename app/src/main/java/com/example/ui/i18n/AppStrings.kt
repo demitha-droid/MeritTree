@@ -133,6 +133,8 @@ class AppStrings(val language: AppLanguage) {
 
     // Detail Sheet
     val shareDedicate = if (isSinhala) "පින් අනුමෝදන් කරන්න" else "Share / Dedicate"
+    val editPost = if (isSinhala) "පෝස්ටුව සංස්කරණය කරන්න" else "Edit Post"
+    val saveChanges = if (isSinhala) "වෙනස්කම් සුරකින්න" else "Save Changes"
     val delete = if (isSinhala) "මකා දමන්න" else "Delete"
     val close = if (isSinhala) "වසන්න" else "Close"
 
