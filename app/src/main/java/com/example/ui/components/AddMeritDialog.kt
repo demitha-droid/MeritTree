@@ -83,6 +83,7 @@ fun AddMeritDialog(
     onCapturePhoto: () -> Unit,
     onCaptureVideo: () -> Unit,
     pickedMediaUri: String?,
+    initialCategory: MeritCategory = MeritCategory.DANA,
     onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?) -> Unit
 ) {
     val strings = LocalAppStrings.current
@@ -90,7 +91,7 @@ fun AddMeritDialog(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var title by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(MeritCategory.DANA) }
+    var selectedCategory by remember(initialCategory) { mutableStateOf(initialCategory) }
     var description by remember { mutableStateOf("") }
     var dedication by remember {
         mutableStateOf(

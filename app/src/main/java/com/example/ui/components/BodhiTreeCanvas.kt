@@ -825,7 +825,42 @@ private fun DrawScope.renderDormantLeaf(cache: BodhiTreeRenderCache) {
 }
 
 /**
- * Renders an awakened Bodhi leaf with the full exquisite design inside:
+ * Computes a rich botanical gradient for each leaf using its category essence
+ * and subtle natural hue variation based on branch position & leaf id.
+ */
+private fun getVibrantLeafBrush(merit: MeritEntity, category: MeritCategory): Brush {
+    val slotFactor = ((merit.branchIndex % 7) - 3) * 0.04f // -0.12 to +0.12
+    val idFactor = (((merit.id.toInt() and 0x3F) % 5) - 2) * 0.03f // -0.06 to +0.06
+    val variation = slotFactor + idFactor
+
+    val base = category.leafColor
+    val accent = category.accentColor
+
+    val rTop = (accent.red * (1f + variation)).coerceIn(0.15f, 1f)
+    val gTop = (accent.green * (1f + variation * 0.8f)).coerceIn(0.15f, 1f)
+    val bTop = (accent.blue * (1f - variation * 0.5f)).coerceIn(0.15f, 1f)
+
+    val rMid = (base.red * (1f + variation * 0.5f)).coerceIn(0.1f, 1f)
+    val gMid = (base.green * (1f + variation * 0.4f)).coerceIn(0.1f, 1f)
+    val bMid = (base.blue * (1f - variation * 0.3f)).coerceIn(0.1f, 1f)
+
+    val rBot = (base.red * 0.62f * (1f + variation * 0.3f)).coerceIn(0.05f, 1f)
+    val gBot = (base.green * 0.62f * (1f + variation * 0.3f)).coerceIn(0.05f, 1f)
+    val bBot = (base.blue * 0.62f * (1f - variation * 0.2f)).coerceIn(0.05f, 1f)
+
+    return Brush.verticalGradient(
+        colors = listOf(
+            Color(rTop, gTop, bTop),
+            Color(rMid, gMid, bMid),
+            Color(rBot, gBot, bBot)
+        ),
+        startY = -28f,
+        endY = 14f
+    )
+}
+
+/**
+ * Renders an awakened Bodhi leaf with vibrant, unique botanical color:
  * glowing category essence, intricate skeleton veins, and central sacred dewdrop jewel.
  */
 private fun DrawScope.renderAwakenedLeaf(
@@ -848,31 +883,33 @@ private fun DrawScope.renderAwakenedLeaf(
         )
     }
 
-    // 1. Rich Luminous Copper Body
+    val leafBrush = getVibrantLeafBrush(merit, category)
+
+    // 1. Rich Botanical Leaf Body with distinct color per category & sprout
     drawPath(
         path = cache.canonicalLeafPath,
-        brush = cache.awakenedLeafBrush,
+        brush = leafBrush,
         style = Fill
     )
 
-    // 2. Category Essence Glow appearing inside the leaf
+    // 2. Category Essence Inner Glow
     drawCircle(
-        color = category.leafColor.copy(alpha = 0.35f),
-        radius = 9f,
+        color = category.accentColor.copy(alpha = 0.40f),
+        radius = 11f,
         center = Offset.Zero
     )
 
-    // 3. Crisp Dark Copper Leaf Perimeter Outline
+    // 3. Crisp Leaf Perimeter Outline
     drawPath(
         path = cache.canonicalLeafPath,
-        color = Color(0xFF4A1F13),
+        color = category.leafColor.copy(alpha = 0.90f),
         style = Stroke(width = 1.3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     )
 
-    // 4. INNER DESIGN: Intricate Skeleton Veins
+    // 4. INNER DESIGN: Intricate Golden Skeleton Veins
     drawPath(
         path = cache.canonicalVeinsPath,
-        color = Color(0xFF5A2518).copy(alpha = 0.88f),
+        color = Color(0xFFFFF9C4).copy(alpha = 0.75f),
         style = Stroke(width = 0.95f, cap = StrokeCap.Round)
     )
 

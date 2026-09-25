@@ -440,6 +440,14 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
 
     // Add Merit / Sprout Leaf Dialog
     if (showAddDialog) {
+        // Cycle category so each sprouted leaf naturally introduces a different vibrant color
+        val nextVariedCategory = remember(merits.size, targetSlotId, showAddDialog) {
+            val entries = MeritCategory.entries
+            val slotOffset = targetSlotId ?: 0
+            val idx = (merits.size + slotOffset) % entries.size
+            entries[idx]
+        }
+
         AddMeritDialog(
             onDismiss = {
                 currentPickedPhotoUri = null
@@ -457,6 +465,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 launchCameraVideo(isAdd = true)
             },
             pickedMediaUri = currentPickedPhotoUri,
+            initialCategory = nextVariedCategory,
             onAddMerit = { title, category, description, dedication, imageUri ->
                 viewModel.addMerit(title, category, description, dedication, imageUri, targetSlotId)
                 currentPickedPhotoUri = null
