@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -60,6 +61,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -325,12 +327,33 @@ fun BodhiTreeCanvas(
                 .pointerInput(meritsBySlot, revealedMeritIds, width, height) {
                     detectTapGestures { tapOffset ->
                         val slots = BodhiTreeGeometry.LEAF_SLOTS
-                        val hit = slots.firstOrNull { slot ->
+                        val leafBaseScale = (width / 390f) * 1.05f
+
+                        // 1. If a leaf is currently revealed, check if tapped first
+                        val revealedMerit = merits.firstOrNull { it.id in revealedMeritIds }
+                        if (revealedMerit != null) {
+                            val slot = slots.getOrNull(revealedMerit.branchIndex)
+                            if (slot != null) {
+                                val cx = slot.xRatio * width
+                                val cy = slot.yRatio * height
+                                val hitRadius = 32f * leafBaseScale * slot.scaleFactor * 1.35f
+                                if (hypot(tapOffset.x - cx, tapOffset.y - cy) <= hitRadius) {
+                                    onLeafClick(revealedMerit)
+                                    return@detectTapGestures
+                                }
+                            }
+                        }
+
+                        // 2. Nearest-neighbor leaf selection so overlapping hitboxes never prevent clicking any leaf
+                        val candidates = slots.mapNotNull { slot ->
                             val cx = slot.xRatio * width
                             val cy = slot.yRatio * height
-                            val hitRadius = 36f * (width / 390f) * 1.05f * slot.scaleFactor * 1.55f
-                            hypot(tapOffset.x - cx, tapOffset.y - cy) <= hitRadius
+                            val hitRadius = 26f * leafBaseScale * slot.scaleFactor * 1.30f
+                            val dist = hypot(tapOffset.x - cx, tapOffset.y - cy)
+                            if (dist <= hitRadius) slot to dist else null
                         }
+                        val hit = candidates.minByOrNull { it.second }?.first
+
                         if (hit != null) {
                             val merit = meritsBySlot[hit.id]
                             if (merit != null) {
@@ -402,13 +425,11 @@ fun BodhiTreeCanvas(
                 }
             }
 
-            // Only render unrevealed active/awakened leaves on Canvas
-            // (Revealed leaves are rendered as the photo Composables on top)
+            // Always render awakened leaves on Canvas so when 2-second revealed pic reverts, natural leaf is seamlessly visible
             val slots = BodhiTreeGeometry.LEAF_SLOTS
             val leafBaseScale = (width / 390f) * 1.05f
 
             for (merit in merits) {
-                if (merit.id in revealedMeritIds) continue
                 val slot = slots.getOrNull(merit.branchIndex) ?: continue
                 val leafX = slot.xRatio * width
                 val leafY = slot.yRatio * height
@@ -429,9 +450,10 @@ fun BodhiTreeCanvas(
         }
 
         // 4. Render Revealed Leaves displaying the linked post's image inside the Bodhi leaf!
+        // Sized compactly (48dp x 58dp) so it perfectly frames the leaf without overflowing nearby branches
         val slots = BodhiTreeGeometry.LEAF_SLOTS
-        val leafWidth = 54.dp
-        val leafHeight = 64.dp
+        val leafWidth = 48.dp
+        val leafHeight = 58.dp
         val leafWidthPx = with(density) { leafWidth.toPx() }
         val leafHeightPx = with(density) { leafHeight.toPx() }
 
@@ -531,22 +553,41 @@ private fun RevealedBodhiLeafPic(
     modifier: Modifier = Modifier
 ) {
     val scaleAnim = remember { Animatable(0.2f) }
+    val alphaAnim = remember { Animatable(0f) }
+
     LaunchedEffect(merit.id) {
-        scaleAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = 0.58f,
-                stiffness = Spring.StiffnessMediumLow
+        // 1. Pop-in with bouncy spring
+        launch {
+            scaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = 0.58f,
+                    stiffness = Spring.StiffnessMediumLow
+                )
             )
-        )
+        }
+        launch {
+            alphaAnim.animateTo(1f, animationSpec = tween(140))
+        }
+
+        // 2. Stay revealed so the user can view the picture and tap it
+        delay(1750L)
+
+        // 3. Smoothly dissolve back to natural leaf state at 2.0 seconds
+        launch {
+            scaleAnim.animateTo(0.65f, animationSpec = tween(250, easing = FastOutSlowInEasing))
+        }
+        launch {
+            alphaAnim.animateTo(0f, animationSpec = tween(250))
+        }
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "revealed_leaf_pulse")
     val pulseGlow by infiniteTransition.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.04f,
+        initialValue = 0.96f,
+        targetValue = 1.03f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseGlow"
@@ -555,6 +596,7 @@ private fun RevealedBodhiLeafPic(
     Box(
         modifier = modifier
             .scale(scaleAnim.value * pulseGlow)
+            .alpha(alphaAnim.value)
             .shadow(
                 elevation = 8.dp,
                 shape = BodhiLeafShape,

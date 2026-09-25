@@ -12,6 +12,8 @@ import com.example.data.MeritRepository
 import com.example.ui.i18n.AppLanguage
 import com.example.ui.sound.MindfulSoundHelper
 import com.example.ui.theme.AppThemeMode
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -119,10 +121,13 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private var leafRevertJob: Job? = null
+
     fun selectMerit(merit: MeritEntity?) {
         _selectedMerit.value = merit
         if (merit != null) {
             triggerHaptic()
+            hideLeaf()
         }
     }
 
@@ -138,12 +143,23 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
         _newlySproutedId.value = null
     }
 
-    fun revealLeaf(meritId: Long) {
-        _revealedLeafIds.value = _revealedLeafIds.value + meritId
+    fun revealLeaf(meritId: Long, autoRevertMs: Long = 2000L) {
+        leafRevertJob?.cancel()
+        // Keep only 1 leaf revealed at a time so leaves NEVER overlap or block each other
+        _revealedLeafIds.value = setOf(meritId)
+        leafRevertJob = viewModelScope.launch {
+            delay(autoRevertMs)
+            _revealedLeafIds.value = _revealedLeafIds.value - meritId
+        }
     }
 
-    fun hideLeaf(meritId: Long) {
-        _revealedLeafIds.value = _revealedLeafIds.value - meritId
+    fun hideLeaf(meritId: Long? = null) {
+        leafRevertJob?.cancel()
+        if (meritId != null) {
+            _revealedLeafIds.value = _revealedLeafIds.value - meritId
+        } else {
+            _revealedLeafIds.value = emptySet()
+        }
     }
 
     /**
