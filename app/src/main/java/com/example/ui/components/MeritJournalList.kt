@@ -21,8 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,7 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -84,10 +84,11 @@ fun MeritJournalList(
             }
         }
     } else {
+        // Full screen from both sides (0 horizontal padding)
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 84.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(merits, key = { it.id }) { merit ->
                 MeritJournalCard(
@@ -100,12 +101,9 @@ fun MeritJournalList(
 }
 
 /**
- * Full post card following requested hierarchy:
- * 1. Date & Time
- * 2. Title
- * 3. Description font of the title
- * 4. Category label
- * 5. Big uploaded image
+ * Full post card stretching full screen from left to right edges.
+ * Only has top and bottom borders (left and right borders removed per design request).
+ * Renders video thumbnails seamlessly with zero lag.
  */
 @Composable
 fun MeritJournalCard(
@@ -119,126 +117,151 @@ fun MeritJournalCard(
         sdf.format(Date(merit.timestamp))
     }
 
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+    val isVideo = remember(merit.imageUri) {
+        val uri = merit.imageUri?.lowercase() ?: ""
+        uri.endsWith(".mp4") || uri.endsWith(".mov") || uri.endsWith(".mkv") ||
+                uri.endsWith(".3gp") || uri.endsWith(".webm") || uri.contains("merit_video_")
+    }
+
+    val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+
+    // Full screen card with ONLY top and bottom borders
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .drawBehind {
+                val strokeWidth = 1.dp.toPx()
+                // Top post border
+                drawLine(
+                    color = borderColor,
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = strokeWidth
+                )
+                // Bottom post border
+                drawLine(
+                    color = borderColor,
+                    start = Offset(0f, size.height),
+                    end = Offset(size.width, size.height),
+                    strokeWidth = strokeWidth
+                )
+            }
+            .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
             .testTag("merit_card_${merit.id}")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(vertical = 18.dp)
         ) {
-            // 1. DATE & TIME (Top)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            // Text Header: Date, Title, Description, and Category (with comfortable 20.dp horizontal padding)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier.testTag("merit_date_${merit.id}")
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. TITLE (Below date & time)
-            Text(
-                text = merit.title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 28.sp
-                ),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("merit_title_${merit.id}")
-            )
-
-            // 3. DESCRIPTION FONT OF THE TITLE (Below title)
-            if (merit.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = merit.description,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 22.sp,
-                        fontWeight = FontWeight.Normal
-                    ),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag("merit_description_${merit.id}")
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 4. CATEGORY LABEL
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = category.leafColor.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, category.leafColor.copy(alpha = 0.35f))
-            ) {
+                // 1. DATE & TIME (Top)
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Spa,
+                        imageVector = Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = category.leafColor,
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "${category.paliName} • ${strings.categoryTitle(category)}",
+                        text = formattedDate,
                         style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = category.leafColor
-                        )
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.testTag("merit_date_${merit.id}")
                     )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 2. TITLE (Below date & time)
+                Text(
+                    text = merit.title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 28.sp
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("merit_title_${merit.id}")
+                )
+
+                // 3. DESCRIPTION (Below title)
+                if (merit.description.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = merit.description,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 22.sp,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag("merit_description_${merit.id}")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 4. CATEGORY LABEL
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = category.leafColor.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, category.leafColor.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = category.leafColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "${category.paliName} • ${strings.categoryTitle(category)}",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = category.leafColor
+                            )
+                        )
+                    }
                 }
             }
 
             // 5. UPLOADED IMAGE OR VIDEO (ONLY IF USER ATTACHED MEDIA!)
+            // Spans edge-to-edge full width from left to right edge
             if (!merit.imageUri.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(14.dp))
-
-                val isVideo = remember(merit.imageUri) {
-                    val lower = merit.imageUri.lowercase()
-                    lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
-                            lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(280.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                         .testTag("merit_big_image_${merit.id}")
                 ) {
                     if (isVideo) {
-                        InAppVideoPlayer(
+                        // High-performance video thumbnail with play badge (zero lag in LazyColumn)
+                        VideoThumbnailView(
                             videoUriOrPath = merit.imageUri,
                             modifier = Modifier.fillMaxSize(),
-                            autoPlay = false
+                            onPlayClick = onClick
                         )
                     } else {
                         RenderMeritImage(

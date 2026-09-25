@@ -1,7 +1,10 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,11 +66,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.MeritCategory
 import com.example.ui.BodhiTab
@@ -128,8 +133,10 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var editPickedPhotoUri by remember { mutableStateOf<String?>(null) }
     var showDedicationDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     var pendingCameraMediaFile by remember { mutableStateOf<File?>(null) }
     var isCameraForAdd by remember { mutableStateOf(true) }
+    var pendingCameraAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     // Media Picker (Photos & Videos from Device Gallery)
     val mediaPickerLauncher = rememberLauncherForActivityResult(
@@ -146,7 +153,39 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         }
     }
 
-    // Camera Capture: Photo
+    // Camera Permission Launcher (Handles dangerous CAMERA permission safely)
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pendingCameraAction?.invoke()
+        } else {
+            Toast.makeText(
+                context,
+                if (strings.isSinhala) "කැමරා අවසරය අවශ්‍ය වේ" else "Camera permission is required to capture photos",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        pendingCameraAction = null
+    }
+
+    // Camera Capture: Photo Preview fallback if TakePicture intent has FileProvider issue on device
+    val takePhotoPreviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            val localPath = viewModel.saveBitmapLocally(bitmap)
+            if (localPath != null) {
+                if (isCameraForAdd) {
+                    currentPickedPhotoUri = localPath
+                } else {
+                    editPickedPhotoUri = localPath
+                }
+            }
+        }
+    }
+
+    // Camera Capture: Full-resolution Photo
     val takePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -174,18 +213,90 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         }
     }
 
-    fun launchCameraPhoto(isAdd: Boolean) {
-        val (contentUri, file) = viewModel.createMediaCaptureFile(isVideo = false)
-        pendingCameraMediaFile = file
+    fun executeCameraPhoto(isAdd: Boolean) {
         isCameraForAdd = isAdd
-        takePhotoLauncher.launch(contentUri)
+        val result = viewModel.createMediaCaptureFile(isVideo = false)
+        if (result != null) {
+            val (contentUri, file) = result
+            pendingCameraMediaFile = file
+            try {
+                takePhotoLauncher.launch(contentUri)
+            } catch (_: Exception) {
+                try {
+                    takePhotoPreviewLauncher.launch(null)
+                } catch (_: Exception) {
+                    Toast.makeText(
+                        context,
+                        if (strings.isSinhala) "කැමරාව සොයාගත නොහැකි විය. ගැලරිය විවෘත වේ..." else "Camera unavailable. Opening gallery...",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    mediaPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+            }
+        } else {
+            try {
+                takePhotoPreviewLauncher.launch(null)
+            } catch (_: Exception) {
+                mediaPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            }
+        }
+    }
+
+    fun launchCameraPhoto(isAdd: Boolean) {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            executeCameraPhoto(isAdd)
+        } else {
+            pendingCameraAction = { executeCameraPhoto(isAdd) }
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    fun executeCameraVideo(isAdd: Boolean) {
+        isCameraForAdd = isAdd
+        val result = viewModel.createMediaCaptureFile(isVideo = true)
+        if (result != null) {
+            val (contentUri, file) = result
+            pendingCameraMediaFile = file
+            try {
+                captureVideoLauncher.launch(contentUri)
+            } catch (_: Exception) {
+                Toast.makeText(
+                    context,
+                    if (strings.isSinhala) "වීඩියෝ කැමරාව සොයාගත නොහැකි විය. ගැලරිය විවෘත වේ..." else "Video camera unavailable. Opening gallery...",
+                    Toast.LENGTH_SHORT
+                ).show()
+                mediaPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+                )
+            }
+        } else {
+            mediaPickerLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
+            )
+        }
     }
 
     fun launchCameraVideo(isAdd: Boolean) {
-        val (contentUri, file) = viewModel.createMediaCaptureFile(isVideo = true)
-        pendingCameraMediaFile = file
-        isCameraForAdd = isAdd
-        captureVideoLauncher.launch(contentUri)
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            executeCameraVideo(isAdd)
+        } else {
+            pendingCameraAction = { executeCameraVideo(isAdd) }
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     // Clear newly sprouted animation highlight after 4 seconds

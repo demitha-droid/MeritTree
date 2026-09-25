@@ -165,18 +165,42 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Creates a destination temporary File and Content Uri via FileProvider for capturing photos or videos.
      */
-    fun createMediaCaptureFile(isVideo: Boolean): Pair<Uri, File> {
-        val context = getApplication<Application>()
-        val mediaDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
-        val ext = if (isVideo) "mp4" else "jpg"
-        val prefix = if (isVideo) "merit_video_" else "merit_photo_"
-        val file = File(mediaDir, "${prefix}${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.$ext")
-        val contentUri = androidx.core.content.FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
-        return Pair(contentUri, file)
+    fun createMediaCaptureFile(isVideo: Boolean): Pair<Uri, File>? {
+        return try {
+            val context = getApplication<Application>()
+            val mediaDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
+            val ext = if (isVideo) "mp4" else "jpg"
+            val prefix = if (isVideo) "merit_video_" else "merit_photo_"
+            val file = File(mediaDir, "${prefix}${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.$ext")
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+            val contentUri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            Pair(contentUri, file)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Saves a captured Bitmap directly to internal filesDir as a JPEG file.
+     */
+    fun saveBitmapLocally(bitmap: android.graphics.Bitmap): String? {
+        return try {
+            val context = getApplication<Application>()
+            val mediaDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
+            val file = File(mediaDir, "merit_photo_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.jpg")
+            FileOutputStream(file).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            file.absolutePath
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
@@ -206,6 +230,21 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
                         input.copyTo(output)
                     }
                 }
+                // Pre-generate companion thumbnail file immediately so journal feeds render it instantaneously
+                try {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    retriever.setDataSource(destFile.absolutePath)
+                    val frame = retriever.getFrameAtTime(500_000, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                        ?: retriever.frameAtTime
+                    retriever.release()
+                    if (frame != null) {
+                        val thumbFile = File("${destFile.absolutePath}.thumb.jpg")
+                        FileOutputStream(thumbFile).use { out ->
+                            frame.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+                        }
+                    }
+                } catch (_: Exception) {}
+
                 return destFile.absolutePath
             }
 
