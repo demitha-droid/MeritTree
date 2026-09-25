@@ -216,23 +216,38 @@ fun MeritJournalCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            // 5. UPLOADED IMAGE OR VIDEO (ONLY IF USER ATTACHED MEDIA!)
+            if (!merit.imageUri.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(14.dp))
 
-            // 5. BIG UPLOADED IMAGE (Prominent hero image)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                    .testTag("merit_big_image_${merit.id}")
-            ) {
-                RenderMeritImage(
-                    imageUri = merit.imageUri,
-                    defaultDrawableRes = category.defaultDrawableRes,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val isVideo = remember(merit.imageUri) {
+                    val lower = merit.imageUri.lowercase()
+                    lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                            lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                        .testTag("merit_big_image_${merit.id}")
+                ) {
+                    if (isVideo) {
+                        InAppVideoPlayer(
+                            videoUriOrPath = merit.imageUri,
+                            modifier = Modifier.fillMaxSize(),
+                            autoPlay = false
+                        )
+                    } else {
+                        RenderMeritImage(
+                            imageUri = merit.imageUri,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             }
         }
     }

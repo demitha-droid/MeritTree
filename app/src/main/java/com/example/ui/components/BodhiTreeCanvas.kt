@@ -619,13 +619,27 @@ private fun RevealedBodhiLeafPic(
             .testTag("revealed_leaf_pic_${merit.id}"),
         contentAlignment = Alignment.Center
     ) {
-        // 1. The image of the post displayed inside the leaf
-        RenderMeritImage(
-            imageUri = merit.imageUri,
-            defaultDrawableRes = category.defaultDrawableRes,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        // 1. If media was uploaded, display it inside the leaf; otherwise, render a pure sacred Bodhi leaf
+        if (!merit.imageUri.isNullOrBlank()) {
+            RenderMeritImage(
+                imageUri = merit.imageUri,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                category.leafColor.copy(alpha = 0.92f),
+                                category.leafColor
+                            )
+                        )
+                    )
+            )
+        }
 
         // 2. Translucent golden leaf skeleton veins overlay
         Canvas(modifier = Modifier.fillMaxSize()) {

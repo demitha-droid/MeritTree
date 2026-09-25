@@ -42,7 +42,7 @@ import java.io.File
 @Composable
 fun RenderMeritImage(
     imageUri: String?,
-    defaultDrawableRes: Int,
+    defaultDrawableRes: Int = 0,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     showVideoBadge: Boolean = true
@@ -81,12 +81,14 @@ fun RenderMeritImage(
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (imageUri.isNullOrBlank()) {
-            Image(
-                painter = painterResource(id = defaultDrawableRes),
-                contentDescription = null,
-                contentScale = contentScale,
-                modifier = Modifier.fillMaxSize()
-            )
+            if (defaultDrawableRes != 0) {
+                Image(
+                    painter = painterResource(id = defaultDrawableRes),
+                    contentDescription = null,
+                    contentScale = contentScale,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         } else if (isVideo) {
             val thumb = videoThumbnail
             if (thumb != null) {
@@ -96,12 +98,18 @@ fun RenderMeritImage(
                     contentScale = contentScale,
                     modifier = Modifier.fillMaxSize()
                 )
-            } else {
+            } else if (defaultDrawableRes != 0) {
                 Image(
                     painter = painterResource(id = defaultDrawableRes),
                     contentDescription = null,
                     contentScale = contentScale,
                     modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black)
                 )
             }
 

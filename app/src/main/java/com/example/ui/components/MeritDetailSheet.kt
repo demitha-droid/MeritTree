@@ -469,26 +469,39 @@ fun MeritDetailSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                // Media Preview Card (ONLY shown if media is actually attached)
+                if (!editImageUri.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                // Media Preview Card
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .testTag("edit_merit_image_preview")
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        RenderMeritImage(
-                            imageUri = editImageUri,
-                            defaultDrawableRes = editCategory.defaultDrawableRes,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                    val isEditVideo = remember(editImageUri) {
+                        val lower = editImageUri!!.lowercase()
+                        lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                                lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                    }
 
-                        // Detach / Clear Media Button
-                        if (editImageUri != null) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .testTag("edit_merit_image_preview")
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            if (isEditVideo) {
+                                InAppVideoPlayer(
+                                    videoUriOrPath = editImageUri!!,
+                                    modifier = Modifier.fillMaxSize(),
+                                    autoPlay = false
+                                )
+                            } else {
+                                RenderMeritImage(
+                                    imageUri = editImageUri,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            // Detach / Clear Media Button
                             Surface(
                                 color = Color.Black.copy(alpha = 0.65f),
                                 shape = CircleShape,
@@ -591,31 +604,66 @@ fun MeritDetailSheet(
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
             ) {
-                // 1. Prominent Hero Media at the Top
-                Box(
+                // 1. Prominent Media (ONLY IF MEDIA EXISTS! No default image fallback)
+                if (!merit.imageUri.isNullOrBlank()) {
+                    if (isVideo) {
+                        InAppVideoPlayer(
+                            videoUriOrPath = merit.imageUri!!,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp),
+                            autoPlay = false,
+                            allowFullScreenToggle = true
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(270.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clickable { isFullScreenImage = true }
+                                .testTag("merit_post_image_card")
+                        ) {
+                            RenderMeritImage(
+                                imageUri = merit.imageUri,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Bottom info badge
+                            Surface(
+                                color = Color.Black.copy(alpha = 0.60f),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Tap to view full photo",
+                                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 2. Post Content Body
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(270.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .clickable { playOrOpenMedia() }
-                        .testTag("merit_post_image_card")
+                        .padding(20.dp)
                 ) {
-                    RenderMeritImage(
-                        imageUri = merit.imageUri,
-                        defaultDrawableRes = currentCategory.defaultDrawableRes,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    // Top category badge overlay
+                    // Category Badge
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-                        border = BorderStroke(1.dp, currentCategory.leafColor.copy(alpha = 0.6f)),
-                        shadowElevation = 3.dp,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(14.dp)
+                        color = currentCategory.leafColor.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, currentCategory.leafColor.copy(alpha = 0.5f)),
+                        modifier = Modifier.padding(bottom = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -637,42 +685,6 @@ fun MeritDetailSheet(
                             )
                         }
                     }
-
-                    // Bottom info badge
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.60f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isVideo) {
-                                Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Tap to play video",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
-                                )
-                            } else {
-                                Text(
-                                    text = "Tap to view full photo",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 2. Post Content Body
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
                     // Date & Time
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

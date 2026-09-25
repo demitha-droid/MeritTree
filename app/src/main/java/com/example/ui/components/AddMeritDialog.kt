@@ -352,26 +352,39 @@ fun AddMeritDialog(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // Only display media preview if media has actually been uploaded or captured
+            if (!selectedImageUri.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Selected Media Preview Card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .testTag("add_merit_image_preview")
-            ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    RenderMeritImage(
-                        imageUri = selectedImageUri,
-                        defaultDrawableRes = selectedCategory.defaultDrawableRes,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                val isVideo = remember(selectedImageUri) {
+                    val lower = selectedImageUri!!.lowercase()
+                    lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
+                            lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
+                }
 
-                    // Remove/Clear button if media is attached
-                    if (selectedImageUri != null) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .testTag("add_merit_image_preview")
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        if (isVideo) {
+                            InAppVideoPlayer(
+                                videoUriOrPath = selectedImageUri!!,
+                                modifier = Modifier.fillMaxSize(),
+                                autoPlay = false
+                            )
+                        } else {
+                            RenderMeritImage(
+                                imageUri = selectedImageUri,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        // Remove/Clear button to detach media
                         Surface(
                             color = Color.Black.copy(alpha = 0.65f),
                             shape = CircleShape,
