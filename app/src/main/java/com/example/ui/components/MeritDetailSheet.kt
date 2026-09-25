@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.ButtonDefaults
@@ -109,37 +110,30 @@ fun MeritDetailSheet(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
-            // Header Bar
+            // 1. DATE & TIME (Top with Close action)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category Pill
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = category.leafColor.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, category.leafColor.copy(alpha = 0.4f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Spa,
-                            contentDescription = null,
-                            tint = category.leafColor,
-                            modifier = Modifier.size(16.dp)
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            text = "${category.paliName} • ${category.title}",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = category.leafColor
-                            )
-                        )
-                    }
+                    )
                 }
 
                 IconButton(
@@ -154,31 +148,75 @@ fun MeritDetailSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Post Title
+            // 2. TITLE (Below date & time)
             Text(
                 text = merit.title,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 32.sp
                 ),
                 modifier = Modifier.testTag("merit_detail_title")
             )
 
-            // Date
-            Text(
-                text = formattedDate,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
+            // 3. DESCRIPTION FONT OF THE TITLE (Below title)
+            if (merit.description.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Text(
+                            text = merit.description,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                lineHeight = 26.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            modifier = Modifier.testTag("merit_detail_description")
+                        )
+                    }
+                }
+            }
 
-            // ==========================================
-            // FEATURED POST IMAGE (Mandated by user:
-            // "when you click the leaf you can see the image of the post inside")
-            // ==========================================
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 4. CATEGORY LABEL
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = category.leafColor.copy(alpha = 0.15f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, category.leafColor.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Spa,
+                        contentDescription = null,
+                        tint = category.leafColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "${category.paliName} • ${category.title}",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = category.leafColor
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 5. BIG UPLOADED IMAGE (Prominent hero image)
             Card(
                 shape = RoundedCornerShape(20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -191,7 +229,7 @@ fun MeritDetailSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp),
+                        .height(290.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     RenderMeritImage(
@@ -231,37 +269,6 @@ fun MeritDetailSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Reflection / Deed Narrative
-            if (merit.description.isNotBlank()) {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Text(
-                            text = "Wholesome Deed & Reflection",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = merit.description,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                lineHeight = 24.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = Modifier.testTag("merit_detail_description")
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
             // Dedication of Merit (Pattidāna)
             if (merit.dedication.isNotBlank()) {

@@ -1,9 +1,5 @@
 package com.example.ui.components
 
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +17,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,8 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,13 +39,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,17 +53,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.R
-import com.example.ui.i18n.LocalAppStrings
 import com.example.data.MeritCategory
-import java.io.File
+import com.example.ui.i18n.LocalAppStrings
 
 data class PresetArtwork(
     val id: String,
@@ -80,7 +71,8 @@ data class PresetArtwork(
 @Composable
 fun AddMeritDialog(
     onDismiss: () -> Unit,
-    onSaveImageLocally: (Uri) -> String?,
+    onPickPhoto: () -> Unit,
+    pickedPhotoUri: String?,
     onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?) -> Unit
 ) {
     val strings = LocalAppStrings.current
@@ -89,9 +81,20 @@ fun AddMeritDialog(
     var title by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(MeritCategory.DANA) }
     var description by remember { mutableStateOf("") }
-    var dedication by remember { mutableStateOf(if (strings.isSinhala) "සියලු සත්වයෝ සුවපත් වෙත්වා, නිදුක් වෙත්වා, නිරෝගී වෙත්වා." else "May all beings be well, happy, and peaceful.") }
+    var dedication by remember {
+        mutableStateOf(
+            if (strings.isSinhala) "සියලු සත්වයෝ සුවපත් වෙත්වා, නිදුක් වෙත්වා, නිරෝගී වෙත්වා."
+            else "May all beings be well, happy, and peaceful."
+        )
+    }
     var selectedImageUri by remember { mutableStateOf<String?>("preset:ic_merit_dana") }
     var titleError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pickedPhotoUri) {
+        if (!pickedPhotoUri.isNullOrBlank()) {
+            selectedImageUri = pickedPhotoUri
+        }
+    }
 
     // Preset sacred artworks
     val presets = remember {
@@ -105,16 +108,6 @@ fun AddMeritDialog(
             PresetArtwork("preset:ic_merit_stupa", "Sacred Stupa", R.drawable.ic_merit_stupa),
             PresetArtwork("preset:ic_merit_bodhi", "Bodhi Leaf", R.drawable.ic_merit_bodhi)
         )
-    }
-
-    // Android Photo Picker (zero broad storage permission!)
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            val localPath = onSaveImageLocally(uri)
-            selectedImageUri = localPath ?: uri.toString()
-        }
     }
 
     ModalBottomSheet(
@@ -183,7 +176,6 @@ fun AddMeritDialog(
                         selected = isSelected,
                         onClick = {
                             selectedCategory = cat
-                            // Auto-match default preset icon if user hasn't uploaded a photo
                             if (selectedImageUri?.startsWith("preset:") == true) {
                                 selectedImageUri = when (cat) {
                                     MeritCategory.DANA -> "preset:ic_merit_dana"
@@ -230,9 +222,7 @@ fun AddMeritDialog(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ==========================================
-            // IMAGE OF THE POST (Mandated by user)
-            // ==========================================
+            // Selected Image Preview
             Text(
                 text = if (strings.isSinhala) "පින්කමේ ඡායාරූපය" else "Image of the Post",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
@@ -248,7 +238,6 @@ fun AddMeritDialog(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Current Selected Image Preview
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
@@ -271,11 +260,7 @@ fun AddMeritDialog(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(12.dp)
-                            .clickable {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            }
+                            .clickable { onPickPhoto() }
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -300,19 +285,17 @@ fun AddMeritDialog(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Preset Artworks Horizontal Selector
+            // Preset Artworks Horizontal Selector (LazyRow for instantaneous load)
             Text(
                 text = if (strings.isSinhala) "හෝ පූජනීය චිත්‍රයක් තෝරන්න:" else "Or pick sacred artwork:",
                 style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                presets.forEach { preset ->
+                items(presets, key = { it.id }) { preset ->
                     val isChosen = selectedImageUri == preset.id
                     Box(
                         modifier = Modifier

@@ -1,9 +1,13 @@
 package com.example
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -117,7 +121,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
 
     var showAddDialog by remember { mutableStateOf(false) }
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
+    var currentPickedPhotoUri by remember { mutableStateOf<String?>(null) }
     var showDedicationDialog by remember { mutableStateOf(false) }
+
+    // Pre-registered launcher at Activity root to avoid any IPC / registration latency on click
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val localPath = viewModel.saveImageLocally(uri)
+            currentPickedPhotoUri = localPath ?: uri.toString()
+        }
+    }
 
     // Clear newly sprouted animation highlight after 4 seconds
     LaunchedEffect(newlySproutedId) {
@@ -257,7 +272,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             if (activeTab != BodhiTab.SETTINGS) {
                 ExtendedFloatingActionButton(
                     onClick = {
+                        viewModel.triggerHaptic()
                         targetSlotId = null
+                        currentPickedPhotoUri = null
                         showAddDialog = true
                     },
                     icon = {
@@ -309,7 +326,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                                 viewModel.selectMerit(clickedMerit)
                             },
                             onEmptyLeafClick = { slotId ->
+                                viewModel.triggerHaptic()
                                 targetSlotId = slotId
+                                currentPickedPhotoUri = null
                                 showAddDialog = true
                             },
                             modifier = Modifier.fillMaxSize()
@@ -362,10 +381,20 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     // Add Merit / Sprout Leaf Dialog
     if (showAddDialog) {
         AddMeritDialog(
-            onDismiss = { showAddDialog = false },
-            onSaveImageLocally = { uri -> viewModel.saveImageLocally(uri) },
+            onDismiss = {
+                currentPickedPhotoUri = null
+                showAddDialog = false
+            },
+            onPickPhoto = {
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            pickedPhotoUri = currentPickedPhotoUri,
             onAddMerit = { title, category, description, dedication, imageUri ->
                 viewModel.addMerit(title, category, description, dedication, imageUri, targetSlotId)
+                currentPickedPhotoUri = null
+                showAddDialog = false
             }
         )
     }

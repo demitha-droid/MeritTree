@@ -8,7 +8,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -82,13 +85,24 @@ fun BodhiTreeCanvas(
         1.0f
     }
 
-    BoxWithConstraints(
+    var canvasSize by remember { mutableStateOf(Size.Zero) }
+
+    Box(
         modifier = modifier
             .testTag("bodhi_tree_canvas_container")
             .fillMaxSize()
+            .onSizeChanged { size ->
+                if (size.width > 0 && size.height > 0) {
+                    canvasSize = Size(size.width.toFloat(), size.height.toFloat())
+                }
+            }
     ) {
-        val width = constraints.maxWidth.toFloat()
-        val height = constraints.maxHeight.toFloat()
+        val width = canvasSize.width
+        val height = canvasSize.height
+
+        if (width <= 0f || height <= 0f) {
+            return@Box
+        }
 
         // 1. Build and cache all drawing artifacts on dimension change
         val renderCache = remember(width, height) {
