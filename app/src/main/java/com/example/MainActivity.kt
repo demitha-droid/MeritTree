@@ -295,6 +295,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                             merits = merits,
                             newlySproutedId = newlySproutedId,
                             onLeafClick = { clickedMerit ->
+                                viewModel.triggerHaptic()
                                 viewModel.selectMerit(clickedMerit)
                             },
                             onEmptyLeafClick = { slotId ->
@@ -310,6 +311,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                         MeritJournalList(
                             merits = allMeritsDescending,
                             onMeritClick = { clickedMerit ->
+                                viewModel.triggerHaptic()
                                 viewModel.selectMerit(clickedMerit)
                             }
                         )
