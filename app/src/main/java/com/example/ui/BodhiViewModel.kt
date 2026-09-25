@@ -72,6 +72,9 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     private val _newlySproutedId = MutableStateFlow<Long?>(null)
     val newlySproutedId: StateFlow<Long?> = _newlySproutedId.asStateFlow()
 
+    private val _revealedLeafIds = MutableStateFlow<Set<Long>>(emptySet())
+    val revealedLeafIds: StateFlow<Set<Long>> = _revealedLeafIds.asStateFlow()
+
     private val _filterCategory = MutableStateFlow<MeritCategory?>(null)
     val filterCategory: StateFlow<MeritCategory?> = _filterCategory.asStateFlow()
 
@@ -133,6 +136,14 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearNewlySprouted() {
         _newlySproutedId.value = null
+    }
+
+    fun revealLeaf(meritId: Long) {
+        _revealedLeafIds.value = _revealedLeafIds.value + meritId
+    }
+
+    fun hideLeaf(meritId: Long) {
+        _revealedLeafIds.value = _revealedLeafIds.value - meritId
     }
 
     /**
@@ -232,6 +243,7 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
             if (_selectedMerit.value?.id == merit.id) {
                 _selectedMerit.value = null
             }
+            _revealedLeafIds.value = _revealedLeafIds.value - merit.id
             repository.delete(merit)
             triggerHaptic()
         }

@@ -116,6 +116,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     val allMeritsDescending by viewModel.allMeritsDescending.collectAsStateWithLifecycle()
     val selectedMerit by viewModel.selectedMerit.collectAsStateWithLifecycle()
     val newlySproutedId by viewModel.newlySproutedId.collectAsStateWithLifecycle()
+    val revealedLeafIds by viewModel.revealedLeafIds.collectAsStateWithLifecycle()
     val filterCategory by viewModel.filterCategory.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
     val isBackupLoading by viewModel.isBackupLoading.collectAsStateWithLifecycle()
@@ -294,6 +295,12 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                         BodhiTreeCanvas(
                             merits = merits,
                             newlySproutedId = newlySproutedId,
+                            revealedMeritIds = revealedLeafIds,
+                            onRevealLeaf = { clickedMerit ->
+                                viewModel.triggerHaptic(strong = true)
+                                viewModel.triggerBellChime()
+                                viewModel.revealLeaf(clickedMerit.id)
+                            },
                             onLeafClick = { clickedMerit ->
                                 viewModel.triggerHaptic()
                                 viewModel.selectMerit(clickedMerit)

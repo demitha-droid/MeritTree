@@ -1,18 +1,47 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -23,12 +52,50 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import kotlinx.coroutines.launch
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.roundToInt
+import kotlin.math.sin
+
+/**
+ * Exact canonical Bodhi leaf shape matching the sacred artwork.
+ * Used to clip the post's image inside the leaf with zero distortion.
+ */
+val BodhiLeafShape: Shape = GenericShape { size, _ ->
+    val w = size.width
+    val h = size.height
+    moveTo(0.5f * w, 1.0f * h)
+    cubicTo(
+        0f * w, (37f / 42f) * h,
+        (2f / 36f) * w, (22f / 42f) * h,
+        (9f / 36f) * w, (15f / 42f) * h
+    )
+    cubicTo(
+        (14f / 36f) * w, (10f / 42f) * h,
+        (17f / 36f) * w, (4f / 42f) * h,
+        0.5f * w, 0f
+    )
+    cubicTo(
+        (19f / 36f) * w, (4f / 42f) * h,
+        (22f / 36f) * w, (10f / 42f) * h,
+        (27f / 36f) * w, (15f / 42f) * h
+    )
+    cubicTo(
+        (34f / 36f) * w, (22f / 42f) * h,
+        1.0f * w, (37f / 42f) * h,
+        0.5f * w, 1.0f * h
+    )
+    close()
+}
 
 /**
  * Pre-allocated drawing cache holding all geometry paths, gradients, and stipple points.
@@ -54,15 +121,29 @@ private class BodhiTreeRenderCache(
     val awakenedLeafBrush: Brush
 )
 
+/**
+ * Instance representing a live sacred explosion animation on the tree.
+ */
+private class ActiveLeafExplosion(
+    val id: Long,
+    val center: Offset,
+    val categoryColor: Color,
+    val animatable: Animatable<Float, AnimationVector1D>
+)
+
 @Composable
 fun BodhiTreeCanvas(
     merits: List<MeritEntity>,
     newlySproutedId: Long?,
+    revealedMeritIds: Set<Long> = emptySet(),
+    onRevealLeaf: (MeritEntity) -> Unit = {},
     onLeafClick: (MeritEntity) -> Unit,
     onEmptyLeafClick: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
+    val activeExplosions = remember { mutableStateListOf<ActiveLeafExplosion>() }
 
     BoxWithConstraints(
         modifier = modifier
@@ -173,7 +254,7 @@ fun BodhiTreeCanvas(
             merits.associateBy { it.branchIndex }
         }
 
-        // 2. Pre-render the entire static tree wood & all dormant leaves into a hardware bitmap
+        // 3. Pre-render the entire static tree wood & all dormant leaves into a hardware bitmap
         val cachedStaticTreeBitmap = remember(width, height, renderCache) {
             try {
                 if (width <= 0f || height <= 0f) return@remember null
@@ -241,19 +322,42 @@ fun BodhiTreeCanvas(
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(meritsBySlot, width, height) {
+                .pointerInput(meritsBySlot, revealedMeritIds, width, height) {
                     detectTapGestures { tapOffset ->
                         val slots = BodhiTreeGeometry.LEAF_SLOTS
                         val hit = slots.firstOrNull { slot ->
                             val cx = slot.xRatio * width
                             val cy = slot.yRatio * height
-                            val hitRadius = 32f * (width / 390f) * 1.05f * slot.scaleFactor * 1.45f
+                            val hitRadius = 36f * (width / 390f) * 1.05f * slot.scaleFactor * 1.55f
                             hypot(tapOffset.x - cx, tapOffset.y - cy) <= hitRadius
                         }
                         if (hit != null) {
                             val merit = meritsBySlot[hit.id]
                             if (merit != null) {
-                                onLeafClick(merit)
+                                if (merit.id in revealedMeritIds) {
+                                    // When user taps that revealed pic, the post pops up!
+                                    onLeafClick(merit)
+                                } else {
+                                    // When user taps an unrevealed leaf, explode and reveal image inside the leaf!
+                                    val cx = hit.xRatio * width
+                                    val cy = hit.yRatio * height
+                                    val category = MeritCategory.fromString(merit.category)
+                                    val explosion = ActiveLeafExplosion(
+                                        id = System.nanoTime(),
+                                        center = Offset(cx, cy),
+                                        categoryColor = category.leafColor,
+                                        animatable = Animatable(0f)
+                                    )
+                                    activeExplosions.add(explosion)
+                                    coroutineScope.launch {
+                                        explosion.animatable.animateTo(
+                                            targetValue = 1f,
+                                            animationSpec = tween(450, easing = FastOutSlowInEasing)
+                                        )
+                                        activeExplosions.remove(explosion)
+                                    }
+                                    onRevealLeaf(merit)
+                                }
                             } else {
                                 onEmptyLeafClick(hit.id)
                             }
@@ -298,11 +402,13 @@ fun BodhiTreeCanvas(
                 }
             }
 
-            // Only render active/awakened leaves on top
+            // Only render unrevealed active/awakened leaves on Canvas
+            // (Revealed leaves are rendered as the photo Composables on top)
             val slots = BodhiTreeGeometry.LEAF_SLOTS
             val leafBaseScale = (width / 390f) * 1.05f
 
             for (merit in merits) {
+                if (merit.id in revealedMeritIds) continue
                 val slot = slots.getOrNull(merit.branchIndex) ?: continue
                 val leafX = slot.xRatio * width
                 val leafY = slot.yRatio * height
@@ -321,6 +427,218 @@ fun BodhiTreeCanvas(
                 }
             }
         }
+
+        // 4. Render Revealed Leaves displaying the linked post's image inside the Bodhi leaf!
+        val slots = BodhiTreeGeometry.LEAF_SLOTS
+        val leafWidth = 54.dp
+        val leafHeight = 64.dp
+        val leafWidthPx = with(density) { leafWidth.toPx() }
+        val leafHeightPx = with(density) { leafHeight.toPx() }
+
+        for (merit in merits) {
+            if (merit.id !in revealedMeritIds) continue
+            val slot = slots.getOrNull(merit.branchIndex) ?: continue
+            val cx = slot.xRatio * width
+            val cy = slot.yRatio * height
+            val category = MeritCategory.fromString(merit.category)
+
+            val leftPx = cx - (leafWidthPx * 0.5f)
+            val topPx = cy - (leafHeightPx * 0.45f)
+
+            RevealedBodhiLeafPic(
+                merit = merit,
+                category = category,
+                onPicClick = { onLeafClick(merit) },
+                modifier = Modifier
+                    .offset { IntOffset(leftPx.roundToInt(), topPx.roundToInt()) }
+                    .size(leafWidth, leafHeight)
+            )
+        }
+
+        // 5. Sacred Explosion Particle & Shockwave Overlay (60/120 FPS hardware accelerated)
+        if (activeExplosions.isNotEmpty()) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                for (explosion in activeExplosions) {
+                    val p = explosion.animatable.value
+                    val c = explosion.center
+                    val catColor = explosion.categoryColor
+
+                    // A. Golden Shockwave Ring
+                    val r1 = (10f + 56f * p) * density.density
+                    val sw1 = (4f * (1f - p)).coerceAtLeast(0.5f) * density.density
+                    drawCircle(
+                        color = Color(0xFFFFD54F).copy(alpha = (1f - p).coerceIn(0f, 1f)),
+                        radius = r1,
+                        center = c,
+                        style = Stroke(width = sw1)
+                    )
+
+                    // B. Inner Sacred White Shockwave Ring
+                    val r2 = (6f + 38f * p) * density.density
+                    val sw2 = (2.5f * (1f - p)).coerceAtLeast(0.5f) * density.density
+                    drawCircle(
+                        color = Color.White.copy(alpha = ((1f - p) * 0.9f).coerceIn(0f, 1f)),
+                        radius = r2,
+                        center = c,
+                        style = Stroke(width = sw2)
+                    )
+
+                    // C. Central Radiance Burst Flash
+                    if (p < 0.65f) {
+                        val flashAlpha = ((0.65f - p) / 0.65f).coerceIn(0f, 1f)
+                        drawCircle(
+                            color = Color(0xFFFFF9C4).copy(alpha = flashAlpha * 0.85f),
+                            radius = (24f * (1f - p)) * density.density,
+                            center = c
+                        )
+                    }
+
+                    // D. 12 Sacred Sparkle Particles radiating outward
+                    val dist = (12f + 54f * (1f - (1f - p) * (1f - p))) * density.density
+                    val pAlpha = (1f - p).coerceIn(0f, 1f)
+                    for (i in 0 until 12) {
+                        val rad = Math.toRadians((i * 30.0 + (i * 7.0)))
+                        val px = c.x + (cos(rad) * dist).toFloat()
+                        val py = c.y + (sin(rad) * dist).toFloat()
+                        val pColor = when (i % 3) {
+                            0 -> Color(0xFFFFD54F)
+                            1 -> catColor
+                            else -> Color.White
+                        }
+                        val pRadius = (3.6f * (1f - p * 0.6f)) * density.density
+                        drawCircle(
+                            color = pColor.copy(alpha = pAlpha),
+                            radius = pRadius,
+                            center = Offset(px, py)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Renders the revealed post image beautifully inside the sacred Bodhi leaf shape.
+ * Framed with a golden border, vein overlay, and serene breathing glow.
+ * Tapping it pops up the full post dialog.
+ */
+@Composable
+private fun RevealedBodhiLeafPic(
+    merit: MeritEntity,
+    category: MeritCategory,
+    onPicClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scaleAnim = remember { Animatable(0.2f) }
+    LaunchedEffect(merit.id) {
+        scaleAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = 0.58f,
+                stiffness = Spring.StiffnessMediumLow
+            )
+        )
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "revealed_leaf_pulse")
+    val pulseGlow by infiniteTransition.animateFloat(
+        initialValue = 0.94f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseGlow"
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scaleAnim.value * pulseGlow)
+            .shadow(
+                elevation = 8.dp,
+                shape = BodhiLeafShape,
+                ambientColor = Color(0xFFFFD54F),
+                spotColor = category.leafColor
+            )
+            .clip(BodhiLeafShape)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color(0xFFFFFDE7), category.leafColor.copy(alpha = 0.35f))
+                )
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                // "when i tap that pic post should pop up"
+                onPicClick()
+            }
+            .testTag("revealed_leaf_pic_${merit.id}"),
+        contentAlignment = Alignment.Center
+    ) {
+        // 1. The image of the post displayed inside the leaf
+        RenderMeritImage(
+            imageUri = merit.imageUri,
+            defaultDrawableRes = category.defaultDrawableRes,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // 2. Translucent golden leaf skeleton veins overlay
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val veinColor = Color(0x75FFD54F)
+            drawLine(
+                color = veinColor,
+                start = Offset(0.5f * w, 0.96f * h),
+                end = Offset(0.5f * w, 0.08f * h),
+                strokeWidth = 1.5f
+            )
+            val veinY = listOf(0.35f, 0.48f, 0.62f, 0.76f)
+            for ((idx, y) in veinY.withIndex()) {
+                val span = (w * 0.30f) * (1f - idx * 0.12f)
+                drawLine(
+                    color = veinColor,
+                    start = Offset(0.5f * w, y * h),
+                    end = Offset(0.5f * w - span, (y - 0.08f) * h),
+                    strokeWidth = 1.0f
+                )
+                drawLine(
+                    color = veinColor,
+                    start = Offset(0.5f * w, y * h),
+                    end = Offset(0.5f * w + span, (y - 0.08f) * h),
+                    strokeWidth = 1.0f
+                )
+            }
+        }
+
+        // 3. Golden Rim Border framing the sacred leaf shape
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(
+                    width = 2.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFFFD54F),
+                            category.leafColor,
+                            Color(0xFFFFB300)
+                        )
+                    ),
+                    shape = BodhiLeafShape
+                )
+        )
+
+        // 4. Luminous apex dewdrop jewel
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 1.5.dp)
+                .size(5.dp)
+                .background(Color(0xFFFFD54F), CircleShape)
+        )
     }
 }
 
