@@ -163,15 +163,54 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Copies and downsamples an external image Uri into internal app filesDir so it remains permanently accessible
+     * Creates a destination temporary File and Content Uri via FileProvider for capturing photos or videos.
+     */
+    fun createMediaCaptureFile(isVideo: Boolean): Pair<Uri, File> {
+        val context = getApplication<Application>()
+        val mediaDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
+        val ext = if (isVideo) "mp4" else "jpg"
+        val prefix = if (isVideo) "merit_video_" else "merit_photo_"
+        val file = File(mediaDir, "${prefix}${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.$ext")
+        val contentUri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+        return Pair(contentUri, file)
+    }
+
+    /**
+     * Copies and downsamples an external image or video Uri into internal app filesDir so it remains permanently accessible
      * with low memory footprint and instant rendering.
      */
-    fun saveImageLocally(sourceUri: Uri): String? {
+    fun saveImageLocally(sourceUri: Uri): String? = saveMediaLocally(sourceUri)
+
+    fun saveMediaLocally(sourceUri: Uri): String? {
         return try {
             val context = getApplication<Application>()
-            val imagesDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
+            val mediaDir = File(context.filesDir, "merit_photos").apply { if (!exists()) mkdirs() }
+            val mimeType = context.contentResolver.getType(sourceUri)?.lowercase()
+            val uriString = sourceUri.toString().lowercase()
+            val isVideo = mimeType?.startsWith("video/") == true ||
+                    uriString.endsWith(".mp4") ||
+                    uriString.endsWith(".mov") ||
+                    uriString.endsWith(".mkv") ||
+                    uriString.endsWith(".3gp") ||
+                    uriString.endsWith(".webm")
+
+            if (isVideo) {
+                val fileName = "merit_video_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.mp4"
+                val destFile = File(mediaDir, fileName)
+                context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                return destFile.absolutePath
+            }
+
             val fileName = "merit_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.jpg"
-            val destFile = File(imagesDir, fileName)
+            val destFile = File(mediaDir, fileName)
 
             val boundsOptions = android.graphics.BitmapFactory.Options().apply {
                 inJustDecodeBounds = true

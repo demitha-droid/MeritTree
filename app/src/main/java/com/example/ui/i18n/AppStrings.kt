@@ -128,6 +128,17 @@ class AppStrings(val language: AppLanguage) {
 
     val attachPhoto = if (isSinhala) "ඡායාරූපයක් එක් කරන්න" else "Attach Memory Photo"
     val changePhoto = if (isSinhala) "ඡායාරූපය වෙනස් කරන්න" else "Change Photo"
+    val uploadMedia = if (isSinhala) "ඡායාරූප / වීඩියෝ උඩුගත කරන්න" else "Upload Image / Video"
+    val cameraMedia = if (isSinhala) "කැමරාවෙන් ලබාගන්න" else "Camera (Photo / Video)"
+    val takePhoto = if (isSinhala) "ඡායාරූපයක් ගන්න" else "Take Photo"
+    val recordVideo = if (isSinhala) "වීඩියෝවක් පටිගත කරන්න" else "Record Video"
+    val chooseCameraMode = if (isSinhala) "කැමරා ක්‍රමය තෝරන්න" else "Choose Camera Mode"
+    val removeMedia = if (isSinhala) "මාධ්‍ය ඉවත් කරන්න" else "Remove Media"
+    val playVideo = if (isSinhala) "වීඩියෝව වාදනය කරන්න" else "Play Video"
+    val mediaSubtitle = if (isSinhala)
+        "ඔබේ උපකරණයෙන් ඡායාරූප හෝ වීඩියෝ උඩුගත කරන්න, නැතහොත් කැමරාවෙන් සෘජුවම ලබාගන්න."
+    else
+        "Upload images & videos from your device or capture them directly using the camera."
     val cancel = if (isSinhala) "අවලංගු කරන්න" else "Cancel"
     val sproutAction = if (isSinhala) "දළු ලවන්න" else "Sprout Leaf"
 

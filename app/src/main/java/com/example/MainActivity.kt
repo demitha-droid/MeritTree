@@ -2,6 +2,7 @@ package com.example
 
 import android.net.Uri
 import android.os.Bundle
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -127,12 +128,15 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var editPickedPhotoUri by remember { mutableStateOf<String?>(null) }
     var showDedicationDialog by remember { mutableStateOf(false) }
 
-    // Pre-registered launcher at Activity root to avoid any IPC / registration latency on click
-    val photoPickerLauncher = rememberLauncherForActivityResult(
+    var pendingCameraMediaFile by remember { mutableStateOf<File?>(null) }
+    var isCameraForAdd by remember { mutableStateOf(true) }
+
+    // Media Picker (Photos & Videos from Device Gallery)
+    val mediaPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri != null) {
-            val localPath = viewModel.saveImageLocally(uri)
+            val localPath = viewModel.saveMediaLocally(uri)
             val path = localPath ?: uri.toString()
             if (showAddDialog) {
                 currentPickedPhotoUri = path
@@ -140,6 +144,48 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 editPickedPhotoUri = path
             }
         }
+    }
+
+    // Camera Capture: Photo
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && pendingCameraMediaFile != null) {
+            val path = pendingCameraMediaFile!!.absolutePath
+            if (isCameraForAdd) {
+                currentPickedPhotoUri = path
+            } else {
+                editPickedPhotoUri = path
+            }
+        }
+    }
+
+    // Camera Capture: Video
+    val captureVideoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CaptureVideo()
+    ) { success ->
+        if (success && pendingCameraMediaFile != null) {
+            val path = pendingCameraMediaFile!!.absolutePath
+            if (isCameraForAdd) {
+                currentPickedPhotoUri = path
+            } else {
+                editPickedPhotoUri = path
+            }
+        }
+    }
+
+    fun launchCameraPhoto(isAdd: Boolean) {
+        val (contentUri, file) = viewModel.createMediaCaptureFile(isVideo = false)
+        pendingCameraMediaFile = file
+        isCameraForAdd = isAdd
+        takePhotoLauncher.launch(contentUri)
+    }
+
+    fun launchCameraVideo(isAdd: Boolean) {
+        val (contentUri, file) = viewModel.createMediaCaptureFile(isVideo = true)
+        pendingCameraMediaFile = file
+        isCameraForAdd = isAdd
+        captureVideoLauncher.launch(contentUri)
     }
 
     // Clear newly sprouted animation highlight after 4 seconds
@@ -150,8 +196,9 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {
@@ -376,12 +423,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 )
                 editPickedPhotoUri = null
             },
-            onPickPhoto = {
-                photoPickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            onUploadMedia = {
+                mediaPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                 )
             },
-            pickedPhotoUri = editPickedPhotoUri
+            onCapturePhoto = {
+                launchCameraPhoto(isAdd = false)
+            },
+            onCaptureVideo = {
+                launchCameraVideo(isAdd = false)
+            },
+            pickedMediaUri = editPickedPhotoUri
         )
     }
 
@@ -392,12 +445,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 currentPickedPhotoUri = null
                 showAddDialog = false
             },
-            onPickPhoto = {
-                photoPickerLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            onUploadMedia = {
+                mediaPickerLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                 )
             },
-            pickedPhotoUri = currentPickedPhotoUri,
+            onCapturePhoto = {
+                launchCameraPhoto(isAdd = true)
+            },
+            onCaptureVideo = {
+                launchCameraVideo(isAdd = true)
+            },
+            pickedMediaUri = currentPickedPhotoUri,
             onAddMerit = { title, category, description, dedication, imageUri ->
                 viewModel.addMerit(title, category, description, dedication, imageUri, targetSlotId)
                 currentPickedPhotoUri = null
@@ -412,6 +471,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             totalMeritsCount = allMerits.size,
             onDismiss = { showDedicationDialog = false }
         )
+    }
     }
 }
 
