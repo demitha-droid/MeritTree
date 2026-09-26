@@ -78,7 +78,6 @@ import com.example.ui.BodhiTab
 import com.example.ui.BodhiViewModel
 import com.example.ui.components.AddMeritDialog
 import com.example.ui.components.BodhiTreeCanvas
-import com.example.ui.components.DedicationDialog
 import com.example.ui.components.MeritDetailSheet
 import com.example.ui.components.MeritJournalList
 import com.example.ui.components.MeritTreeTopBar
@@ -129,7 +128,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
     var currentPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
     var editPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
-    var showDedicationDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     var pendingCameraMediaFile by remember { mutableStateOf<File?>(null) }
@@ -309,13 +307,8 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     // Back gesture handling:
     // When on other tabs like Journal or Settings, the back gesture returns to Home (Merit Tree) instead of quitting.
     // When on Home (Merit Tree), back gesture closes the app as normal.
-    BackHandler(enabled = activeTab != BodhiTab.TREE && !showAddDialog && selectedMerit == null && !showDedicationDialog) {
+    BackHandler(enabled = activeTab != BodhiTab.TREE && !showAddDialog && selectedMerit == null) {
         viewModel.setActiveTab(BodhiTab.TREE)
-    }
-
-    // Dismiss dedication dialog if open
-    BackHandler(enabled = showDedicationDialog) {
-        showDedicationDialog = false
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -324,8 +317,7 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         topBar = {
             MeritTreeTopBar(
                 activeLeavesCount = allMerits.size,
-                onBellClick = { viewModel.triggerBellChime() },
-                onWaterClick = { showDedicationDialog = true }
+                onSettingsClick = { viewModel.setActiveTab(BodhiTab.SETTINGS) }
             )
         },
         bottomBar = {
@@ -478,7 +470,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                                 isHapticEnabled = isHapticEnabled,
                                 onHapticToggle = { viewModel.setHapticEnabled(it) },
                                 onPlayTestChime = { viewModel.triggerBellChime() },
-                                onOpenDedication = { showDedicationDialog = true },
                                 allMerits = allMerits,
                                 isBackupLoading = isBackupLoading,
                                 onExportBackup = { uri, cb -> viewModel.exportBackup(uri, cb) },
@@ -563,14 +554,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                 currentPickedMediaUris = emptyList()
                 showAddDialog = false
             }
-        )
-    }
-
-    // Dedication Bottom Sheet
-    if (showDedicationDialog) {
-        DedicationDialog(
-            totalMeritsCount = allMerits.size,
-            onDismiss = { showDedicationDialog = false }
         )
     }
     }

@@ -294,23 +294,29 @@ fun RenderMeritImage(
 ) {
     val context = LocalContext.current
 
-    val isVideo = remember(imageUri) {
-        if (imageUri.isNullOrBlank()) false
+    // Safely resolve the first media URI if imageUri contains multiple paths/URIs joined by '|'
+    val singleUri = remember(imageUri) {
+        if (imageUri.isNullOrBlank()) null
+        else imageUri.split("|").map { it.trim() }.firstOrNull { it.isNotBlank() }
+    }
+
+    val isVideo = remember(singleUri) {
+        if (singleUri.isNullOrBlank()) false
         else {
-            val lower = imageUri.lowercase()
+            val lower = singleUri.lowercase()
             lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".mkv") ||
                     lower.endsWith(".3gp") || lower.endsWith(".webm") || lower.contains("merit_video_")
         }
     }
 
-    if (isVideo && !imageUri.isNullOrBlank()) {
+    if (isVideo && !singleUri.isNullOrBlank()) {
         VideoThumbnailView(
-            videoUriOrPath = imageUri,
+            videoUriOrPath = singleUri,
             modifier = modifier
         )
     } else {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            if (imageUri.isNullOrBlank()) {
+            if (singleUri.isNullOrBlank()) {
                 if (defaultDrawableRes != 0) {
                     Image(
                         painter = painterResource(id = defaultDrawableRes),
@@ -319,8 +325,8 @@ fun RenderMeritImage(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-            } else if (imageUri.startsWith("preset:")) {
-                val presetRes = when (imageUri.removePrefix("preset:")) {
+            } else if (singleUri.startsWith("preset:")) {
+                val presetRes = when (singleUri.removePrefix("preset:")) {
                     "ic_merit_dana" -> R.drawable.ic_merit_dana
                     "ic_merit_lotus" -> R.drawable.ic_merit_lotus
                     "ic_merit_meditation" -> R.drawable.ic_merit_meditation
@@ -338,10 +344,10 @@ fun RenderMeritImage(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                val imageModel = if (imageUri.startsWith("/")) {
-                    File(imageUri)
+                val imageModel = if (singleUri.startsWith("/")) {
+                    File(singleUri)
                 } else {
-                    imageUri
+                    singleUri
                 }
                 val request = ImageRequest.Builder(context)
                     .data(imageModel)

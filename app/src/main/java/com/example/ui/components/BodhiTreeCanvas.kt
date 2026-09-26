@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
+import com.example.data.getFirstMediaUri
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.cos
@@ -620,9 +621,10 @@ private fun RevealedBodhiLeafPic(
         contentAlignment = Alignment.Center
     ) {
         // 1. If media was uploaded, display it inside the leaf; otherwise, render a pure sacred Bodhi leaf
-        if (!merit.imageUri.isNullOrBlank()) {
+        val firstPic = merit.getFirstMediaUri()
+        if (!firstPic.isNullOrBlank()) {
             RenderMeritImage(
-                imageUri = merit.imageUri,
+                imageUri = firstPic,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )

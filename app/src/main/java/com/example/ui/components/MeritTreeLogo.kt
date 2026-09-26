@@ -17,8 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -326,8 +325,7 @@ fun SacredCrownedMeritLogo(
 @Composable
 fun MeritTreeTopBar(
     activeLeavesCount: Int,
-    onBellClick: () -> Unit,
-    onWaterClick: () -> Unit,
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     currentStyle: Int = 10,
     onStyleChange: (Int) -> Unit = {}
@@ -363,41 +361,19 @@ fun MeritTreeTopBar(
                     )
                 }
 
-                // Right Actions: Mindful Bell + Water Dedication
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Right Action: Settings Icon where water drop used to be
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .testTag("top_bar_settings_button")
                 ) {
-                    // Mindful Bell Chime
-                    IconButton(
-                        onClick = onBellClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .testTag("mindful_bell_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = strings.mindfulBell,
-                            tint = Color(0xFFD97706),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(2.dp))
-
-                    // Water Offering / Dedicate
-                    IconButton(
-                        onClick = onWaterClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .testTag("water_dedication_action_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.WaterDrop,
-                            contentDescription = strings.shareMerit,
-                            tint = Color(0xFF0288D1),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = strings.settingsTitle,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
 
@@ -412,6 +388,73 @@ fun MeritTreeTopBar(
 }
 
 /**
+ * Exact App Launcher Icon Tile rendered natively in Compose.
+ * Features exclusively the two sacred Bodhi leaves (Golden Merit & Sacred Copper)
+ * from the app, centered on the midnight emerald jade field with golden aura rings.
+ */
+@Composable
+fun ExactDesign10AppIconTile(
+    size: Dp = 100.dp,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(size * 0.22f),
+    showBorder: Boolean = true,
+    scale: Float = 1.0f,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = shape,
+        color = Color(0xFF0A231C),
+        border = if (showBorder) BorderStroke(1.8.dp, Color(0xFFFFD54F)) else null,
+        shadowElevation = 8.dp,
+        modifier = modifier.size(size)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Subtle enlightenment background halo
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = this.size.width
+                val h = this.size.height
+
+                // Radial dark emerald backdrop
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFF144537), Color(0xFF0A231C), Color(0xFF051712)),
+                        center = Offset(w * 0.5f, h * 0.48f),
+                        radius = w * 0.72f
+                    )
+                )
+
+                // Golden enlightenment aura rings
+                drawCircle(
+                    color = Color(0x20FFD54F),
+                    radius = w * 0.40f,
+                    center = Offset(w * 0.5f, h * 0.5f)
+                )
+                drawCircle(
+                    color = Color(0x35FFD54F),
+                    radius = w * 0.32f,
+                    center = Offset(w * 0.5f, h * 0.5f),
+                    style = Stroke(width = 1.5f)
+                )
+            }
+
+            // Foreground: The 2 Sacred Bodhi Leaves prominently centered
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                val leafScale = (size.value / 64f) * 0.96f * scale
+                DualHarmonyLeavesIcon(
+                    scaleFactor = leafScale,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+    }
+}
+
+/**
  * Emblem wrapper for About and other sections.
  */
 @Composable
@@ -420,25 +463,10 @@ fun MeritTreeEmblem(
     animatedGlow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = Color(0xFF0F2E29),
-        border = BorderStroke(1.5.dp, Color(0xFFFFD54F)),
-        shadowElevation = 3.dp,
-        modifier = modifier.size(size)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(size * 0.12f)
-        ) {
-            HomeScreenTreeLeafCanvas(
-                style = HomeScreenLeafStyle.SacredCopper,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    }
+    ExactDesign10AppIconTile(
+        size = size,
+        modifier = modifier
+    )
 }
 
 /**

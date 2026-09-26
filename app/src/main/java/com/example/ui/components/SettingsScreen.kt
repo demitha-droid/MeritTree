@@ -47,11 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
 import com.example.data.backup.BackupSummary
@@ -70,7 +72,7 @@ fun SettingsScreen(
     isHapticEnabled: Boolean,
     onHapticToggle: (Boolean) -> Unit,
     onPlayTestChime: () -> Unit,
-    onOpenDedication: () -> Unit,
+    onOpenDedication: () -> Unit = {},
     allMerits: List<MeritEntity>,
     isBackupLoading: Boolean = false,
     onExportBackup: (android.net.Uri, (Result<BackupSummary>) -> Unit) -> Unit = { _, _ -> },
@@ -360,23 +362,6 @@ fun SettingsScreen(
                         )
                     )
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = onOpenDedication,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WaterDrop,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(strings.dedicateAllButton)
-                }
             }
         }
 
@@ -393,7 +378,7 @@ fun SettingsScreen(
             onShareBackup = onShareBackup
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // About Footer with Merit Tree Logo Card
         Card(
