@@ -55,8 +55,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -83,6 +81,7 @@ import com.example.ui.components.BodhiTreeCanvas
 import com.example.ui.components.DedicationDialog
 import com.example.ui.components.MeritDetailSheet
 import com.example.ui.components.MeritJournalList
+import com.example.ui.components.MeritTreeTopBar
 import com.example.ui.components.MeritTreeTopBarLogo
 import com.example.ui.components.SettingsScreen
 import com.example.ui.i18n.AppStrings
@@ -324,38 +323,10 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
-                    MeritTreeTopBarLogo(activeLeavesCount = allMerits.size)
-                },
-                actions = {
-                    // Mindful Bell Chime
-                    IconButton(
-                        onClick = { viewModel.triggerBellChime() },
-                        modifier = Modifier.testTag("mindful_bell_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = strings.mindfulBell,
-                            tint = Color(0xFFD97706)
-                        )
-                    }
-
-                    // Water Offering / Dedicate
-                    IconButton(
-                        onClick = { showDedicationDialog = true },
-                        modifier = Modifier.testTag("water_dedication_action_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.WaterDrop,
-                            contentDescription = strings.shareMerit,
-                            tint = Color(0xFF0288D1)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                )
+            MeritTreeTopBar(
+                activeLeavesCount = allMerits.size,
+                onBellClick = { viewModel.triggerBellChime() },
+                onWaterClick = { showDedicationDialog = true }
             )
         },
         bottomBar = {
