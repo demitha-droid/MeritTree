@@ -82,7 +82,6 @@ import com.example.ui.components.DedicationDialog
 import com.example.ui.components.MeritDetailSheet
 import com.example.ui.components.MeritJournalList
 import com.example.ui.components.MeritTreeTopBar
-import com.example.ui.components.MeritTreeTopBarLogo
 import com.example.ui.components.SettingsScreen
 import com.example.ui.i18n.AppStrings
 import com.example.ui.i18n.LocalAppStrings
@@ -117,7 +116,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
     val isSoundEnabled by viewModel.isSoundEnabled.collectAsStateWithLifecycle()
     val isHapticEnabled by viewModel.isHapticEnabled.collectAsStateWithLifecycle()
-    val topBarStyle by viewModel.topBarStyle.collectAsStateWithLifecycle()
     val merits by viewModel.filteredMerits.collectAsStateWithLifecycle()
     val allMerits by viewModel.allMerits.collectAsStateWithLifecycle()
     val allMeritsDescending by viewModel.allMeritsDescending.collectAsStateWithLifecycle()
@@ -326,8 +324,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
         topBar = {
             MeritTreeTopBar(
                 activeLeavesCount = allMerits.size,
-                currentStyle = topBarStyle,
-                onStyleChange = { viewModel.setTopBarStyle(it) },
                 onBellClick = { viewModel.triggerBellChime() },
                 onWaterClick = { showDedicationDialog = true }
             )
@@ -477,8 +473,6 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                                 onLanguageSelected = { viewModel.setAppLanguage(it) },
                                 currentTheme = themeMode,
                                 onThemeSelected = { viewModel.setThemeMode(it) },
-                                currentTopBarStyle = topBarStyle,
-                                onTopBarStyleSelected = { viewModel.setTopBarStyle(it) },
                                 isSoundEnabled = isSoundEnabled,
                                 onSoundToggle = { viewModel.setSoundEnabled(it) },
                                 isHapticEnabled = isHapticEnabled,

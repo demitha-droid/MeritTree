@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,8 +65,6 @@ fun SettingsScreen(
     onLanguageSelected: (AppLanguage) -> Unit,
     currentTheme: AppThemeMode,
     onThemeSelected: (AppThemeMode) -> Unit,
-    currentTopBarStyle: Int = 1,
-    onTopBarStyleSelected: (Int) -> Unit = {},
     isSoundEnabled: Boolean,
     onSoundToggle: (Boolean) -> Unit,
     isHapticEnabled: Boolean,
@@ -196,93 +195,6 @@ fun SettingsScreen(
             onClick = { onThemeSelected(AppThemeMode.AMOLED) },
             testTag = "theme_option_amoled"
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Section: Top Bar Design Style (1-10)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Park,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = if (strings.isSinhala) "ඉහළ තීරුවේ මෝස්තරය (1-10)" else "Top Bar Design Style (1–10)",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = if (strings.isSinhala) "ඔබ කැමති ශෛලිය තෝරන්න" else "Choose your preferred header aesthetic",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // 10 Design Choices
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TOP_BAR_DESIGN_OPTIONS.forEach { opt ->
-                val isSelected = opt.id == currentTopBarStyle
-                OutlinedCard(
-                    onClick = { onTopBarStyleSelected(opt.id) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.outlinedCardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent
-                    ),
-                    border = BorderStroke(
-                        width = if (isSelected) 1.8.dp else 1.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag("settings_top_bar_style_${opt.id}")
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${opt.id}",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (strings.isSinhala) opt.nameSi else opt.nameEn,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = if (strings.isSinhala) opt.taglineSi else opt.taglineEn,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Active",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)

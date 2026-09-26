@@ -935,12 +935,12 @@ fun MeritDetailSheet(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
+                                contentDescription = if (strings.isSinhala) "සාධු සාධු" else "Sadhu Sadhu",
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (rejoiced) "Sādhu! Sādhu!" else "Rejoice (Sādhu)",
+                                text = if (strings.isSinhala) "සාධු! සාධු!" else "Sadhu! Sadhu!",
                                 fontWeight = FontWeight.Bold
                             )
                         }

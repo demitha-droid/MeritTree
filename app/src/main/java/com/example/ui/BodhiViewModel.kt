@@ -56,24 +56,10 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     private val _isBackupLoading = MutableStateFlow(false)
     val isBackupLoading: StateFlow<Boolean> = _isBackupLoading.asStateFlow()
 
-    private val _topBarStyle = MutableStateFlow(
-        prefs.getInt("top_bar_style", 8)
-    )
-    val topBarStyle: StateFlow<Int> = _topBarStyle.asStateFlow()
-
-    fun setTopBarStyle(styleIndex: Int) {
-        val clamped = styleIndex.coerceIn(1, 10)
-        _topBarStyle.value = clamped
-        prefs.edit().putInt("top_bar_style", clamped).apply()
-    }
-
     init {
         val database = BodhiDatabase.getDatabase(application)
         repository = MeritRepository(database.meritDao())
         backupManager = com.example.data.backup.MeritBackupManager(application, repository)
-        if (!prefs.contains("top_bar_style") || prefs.getInt("top_bar_style", 8) == 1) {
-            setTopBarStyle(8)
-        }
     }
 
     val allMerits: StateFlow<List<MeritEntity>> = repository.allMerits
