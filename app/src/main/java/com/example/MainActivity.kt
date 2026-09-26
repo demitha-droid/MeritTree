@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.widget.Toast
 import java.io.File
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -305,6 +306,18 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             kotlinx.coroutines.delay(4000)
             viewModel.clearNewlySprouted()
         }
+    }
+
+    // Back gesture handling:
+    // When on other tabs like Journal or Settings, the back gesture returns to Home (Merit Tree) instead of quitting.
+    // When on Home (Merit Tree), back gesture closes the app as normal.
+    BackHandler(enabled = activeTab != BodhiTab.TREE && !showAddDialog && selectedMerit == null && !showDedicationDialog) {
+        viewModel.setActiveTab(BodhiTab.TREE)
+    }
+
+    // Dismiss dedication dialog if open
+    BackHandler(enabled = showDedicationDialog) {
+        showDedicationDialog = false
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

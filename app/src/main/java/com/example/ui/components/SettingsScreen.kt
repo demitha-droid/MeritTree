@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -391,27 +392,51 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // About Footer with Merit Tree Logo
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // About Footer with Merit Tree Logo Card
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp)
         ) {
-            MeritTreeEmblem(size = 48.dp, animatedGlow = false)
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = strings.appName,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = strings.versionFooter,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color(0xFF133946),
+                    border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFFFFD54F)),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.size(96.dp)
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(id = com.example.R.drawable.img_merit_tree_art),
+                        contentDescription = "Merit Tree Official App Icon",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp))
+                    )
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = strings.appName,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = strings.versionFooter,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                    )
+                )
+            }
         }
         Spacer(modifier = Modifier.height(24.dp))
     }

@@ -67,8 +67,8 @@ fun MeritTreeEmblem(
 
         // Inner jewel base
         Surface(
-            shape = CircleShape,
-            color = Color(0xFF1B4D3E),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF133946),
             border = BorderStroke(1.5.dp, Color(0xFFFFD54F)),
             shadowElevation = 2.dp,
             modifier = Modifier.size(size * 0.90f)
@@ -77,12 +77,12 @@ fun MeritTreeEmblem(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(size * 0.08f)
+                    .clip(RoundedCornerShape(8.dp))
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_merit_tree_logo),
+                    painter = painterResource(id = R.drawable.img_merit_tree_art),
                     contentDescription = "Merit Tree Logo",
-                    modifier = Modifier.size(size * 0.76f)
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }

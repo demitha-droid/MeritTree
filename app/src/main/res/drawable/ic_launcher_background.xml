@@ -9,16 +9,16 @@
         <aapt:attr name="android:fillColor">
             <gradient
                 android:angle="315"
-                android:endColor="#081C12"
-                android:startColor="#1E4D34"
+                android:endColor="#102A33"
+                android:startColor="#235A6C"
                 android:type="linear" />
         </aapt:attr>
     </path>
-    <!-- Soft circular aura ring -->
+    <!-- Soft divine aura ring behind tree -->
     <path
         android:fillColor="#15FFFFFF"
         android:pathData="M54,54m-42,0a42,42 0 1,1 84,0a42,42 0 1,1 -84,0" />
     <path
-        android:fillColor="#10F5D061"
-        android:pathData="M54,54m-32,0a32,32 0 1,1 64,0a32,32 0 1,1 -64,0" />
+        android:fillColor="#1AF5D061"
+        android:pathData="M54,54m-30,0a30,30 0 1,1 60,0a30,30 0 1,1 -60,0" />
 </vector>
