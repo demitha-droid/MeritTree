@@ -6,23 +6,25 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// 1. GREEN THEME (Current Theme - Named "Green" per user request)
-val GreenColorScheme = darkColorScheme(
-    primary = BodhiGreenDark,
-    onPrimary = Color(0xFF003915),
-    primaryContainer = Color(0xFF144D29),
-    onPrimaryContainer = Color(0xFFA5D6A7),
-    secondary = BodhiGoldDark,
-    onSecondary = Color(0xFF422100),
-    secondaryContainer = Color(0xFF613300),
-    onSecondaryContainer = Color(0xFFFFDDB8),
-    tertiary = BodhiLotusDark,
-    background = BodhiForestBgDark,
-    onBackground = BodhiTextPrimaryDark,
-    surface = BodhiSurfaceDark,
-    onSurface = BodhiTextPrimaryDark,
-    surfaceVariant = BodhiSurfaceVariantDark,
-    onSurfaceVariant = BodhiTextSecondaryDark
+// 1. BROWN THEME (Sacred Sandalwood, Aged Teak & Monastery Earth)
+val BrownColorScheme = darkColorScheme(
+    primary = BodhiBrownPrimary, // Warm radiant sandalwood / golden copper amber
+    onPrimary = Color(0xFF2C1605),
+    primaryContainer = Color(0xFF4A2D1A), // Deep rich mahogany
+    onPrimaryContainer = Color(0xFFFFDCC1),
+    secondary = BodhiBrownSecondary, // Golden temple glow
+    onSecondary = Color(0xFF3E2800),
+    secondaryContainer = Color(0xFF5A3B00),
+    onSecondaryContainer = Color(0xFFFFDF9E),
+    tertiary = BodhiBrownTertiary, // Sacred terracotta lotus
+    onTertiary = Color(0xFF441813),
+    background = BodhiBrownBg, // Deep warm monastery teak & roasted sandalwood night
+    onBackground = BodhiTextPrimaryBrown,
+    surface = BodhiSurfaceBrown, // Aged teak wood surface
+    onSurface = BodhiTextPrimaryBrown,
+    surfaceVariant = BodhiSurfaceVariantBrown, // Warm cedar / sandalwood bark
+    onSurfaceVariant = BodhiTextSecondaryBrown,
+    outline = Color(0xFF6E5343)
 )
 
 // 2. LIGHT THEME
@@ -66,11 +68,11 @@ val AmoledColorScheme = darkColorScheme(
 
 @Composable
 fun MyApplicationTheme(
-    themeMode: AppThemeMode = AppThemeMode.GREEN,
+    themeMode: AppThemeMode = AppThemeMode.BROWN,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when (themeMode) {
-        AppThemeMode.GREEN -> GreenColorScheme
+        AppThemeMode.BROWN -> BrownColorScheme
         AppThemeMode.LIGHT -> LightColorScheme
         AppThemeMode.AMOLED -> AmoledColorScheme
     }

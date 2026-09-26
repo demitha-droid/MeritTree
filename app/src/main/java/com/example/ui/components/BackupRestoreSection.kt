@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FileDownload
@@ -67,6 +69,42 @@ fun BackupRestoreSection(
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
     var pendingRestoreSummary by remember { mutableStateOf<BackupSummary?>(null) }
     var loadingMessage by remember { mutableStateOf<String?>(null) }
+    var showDriveReminderDialog by remember { mutableStateOf(false) }
+    var lastSavedSummary by remember { mutableStateOf<BackupSummary?>(null) }
+
+    // Helper action: Send/Upload backup file to Google Drive
+    val sendToDriveAction = {
+        loadingMessage = strings.backingUpMessage
+        onShareBackup(
+            { contentUri ->
+                loadingMessage = null
+                val driveIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, contentUri)
+                    putExtra(Intent.EXTRA_SUBJECT, "Bodhi Merit Backup")
+                    setPackage("com.google.android.apps.docs")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                try {
+                    context.startActivity(driveIntent)
+                } catch (e: Exception) {
+                    val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/zip"
+                        putExtra(Intent.EXTRA_STREAM, contentUri)
+                        putExtra(Intent.EXTRA_SUBJECT, "Bodhi Merit Backup")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(
+                        Intent.createChooser(fallbackIntent, strings.sendToGoogleDriveButton)
+                    )
+                }
+            },
+            { error ->
+                loadingMessage = null
+                Toast.makeText(context, "${strings.backupError}: $error", Toast.LENGTH_LONG).show()
+            }
+        )
+    }
 
     // SAF Create Document launcher for exporting backup
     val createDocumentLauncher = rememberLauncherForActivityResult(
@@ -78,10 +116,12 @@ fun BackupRestoreSection(
                 loadingMessage = null
                 result.fold(
                     onSuccess = { summary ->
+                        lastSavedSummary = summary
+                        showDriveReminderDialog = true
                         Toast.makeText(
                             context,
                             strings.backupSuccessMessage(summary.meritsCount, summary.mediaCount),
-                            Toast.LENGTH_LONG
+                            Toast.LENGTH_SHORT
                         ).show()
                     },
                     onFailure = { error ->
@@ -244,6 +284,78 @@ fun BackupRestoreSection(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Send to Google Drive direct action button
+                Button(
+                    onClick = { sendToDriveAction() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("send_to_google_drive_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudUpload,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = strings.sendToGoogleDriveButton,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Cloud Protection Reminder Notice Card
+        Card(
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            ),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("cloud_protection_tip_card")
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDone,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = strings.driveTipCard,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -353,6 +465,109 @@ fun BackupRestoreSection(
                 }
             }
         )
+    }
+
+    // Google Drive Backup Reminder Dialog (Shown when saving a new backup)
+    if (showDriveReminderDialog) {
+        Dialog(onDismissRequest = { showDriveReminderDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.CloudUpload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = strings.driveReminderTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    if (lastSavedSummary != null) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = strings.restoreFoundSummary(
+                                lastSavedSummary!!.meritsCount,
+                                lastSavedSummary!!.mediaCount
+                            ),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = strings.driveReminderBody,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = {
+                            showDriveReminderDialog = false
+                            sendToDriveAction()
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("dialog_upload_drive_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(strings.driveReminderAction)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { showDriveReminderDialog = false },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("dialog_dismiss_drive_button")
+                    ) {
+                        Text(strings.driveReminderDismiss)
+                    }
+                }
+            }
+        }
     }
 
     // Modal Progress Dialog during Zip compression or extraction

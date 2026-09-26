@@ -65,11 +65,11 @@ class AppStrings(val language: AppLanguage) {
     else
         "Choose your preferred visual aesthetic for the sacred Bodhi tree."
 
-    val themeGreenTitle = if (isSinhala) "හරිත (Green)" else "Green"
-    val themeGreenDesc = if (isSinhala)
-        "සන්සුන් වන අරණ සහ මරකත බෝධි වර්ණාවලිය"
+    val themeBrownTitle = if (isSinhala) "දුඹුරු (Brown)" else "Brown"
+    val themeBrownDesc = if (isSinhala)
+        "සුවඳ සඳුන්, තේක්ක දැව සහ පූජනීය බිම් තලය"
     else
-        "Sacred forest night and peaceful emerald Bodhi palette"
+        "Sacred sandalwood, warm teak wood and golden monastery earth"
 
     val themeLightTitle = if (isSinhala) "දීප්තිමත් (Light)" else "Light"
     val themeLightDesc = if (isSinhala)
@@ -217,6 +217,20 @@ class AppStrings(val language: AppLanguage) {
 
     val backupError = if (isSinhala) "උපස්ථය සෑදීම අසාර්ථක විය" else "Failed to create backup"
     val restoreError = if (isSinhala) "ප්‍රතිසාධනය අසාර්ථක විය" else "Failed to restore backup"
+
+    // Google Drive Backup & Reminder Strings
+    val sendToGoogleDriveButton = if (isSinhala) "Google Drive වෙත යවන්න" else "Send to Google Drive"
+    val driveReminderTitle = if (isSinhala) "උපස්ථය සාර්ථකයි! ☁️ Google Drive වෙත යවන්නද?" else "Backup Saved! ☁️ Send to Google Drive?"
+    val driveReminderBody = if (isSinhala)
+        "ඔබගේ පින්කම් සහ ඡායාරූප දුරකථනය තුළ සාර්ථකව සුරැකිණි. දුරකථනය නැතිවීමකදී හෝ මාරුකිරීමකදී ඔබගේ සියලු පින් සදහටම සුරක්ෂිතව තබා ගැනීමට Google Drive වෙත පිටපතක් යැවීම නිර්දේශ කෙරේ."
+    else
+        "Your wholesome merits and photos are saved to your device. To ensure your sacred memories are protected against device loss, damage, or phone upgrades, send a copy to your Google Drive cloud storage."
+    val driveReminderAction = if (isSinhala) "දැන් Google Drive වෙත යවන්න" else "Upload to Google Drive Now"
+    val driveReminderDismiss = if (isSinhala) "පසුවට (දුරකථනයේ පමණක් තබන්න)" else "Done (Keep Local Only)"
+    val driveTipCard = if (isSinhala)
+        "වලාකුළු සුරක්ෂිතතාව: නව උපස්ථයක් සෑදූ සෑම විටම Google Drive වෙත යවා ඔබගේ පින්කම් වලාකුළෙහි සුරක්ෂිත කරගන්න."
+    else
+        "Cloud Protection Tip: After saving a new backup, send a copy to Google Drive to keep your merit sanctuary safe in the cloud forever."
 }
 
 val LocalAppStrings = compositionLocalOf { AppStrings(AppLanguage.ENGLISH) }

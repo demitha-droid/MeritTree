@@ -163,15 +163,15 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Three Theme Cards: Green, Light, AMOLED
+        // Three Theme Cards: Brown, Light, AMOLED
         ThemeChoiceCard(
-            title = strings.themeGreenTitle,
-            description = strings.themeGreenDesc,
-            isSelected = currentTheme == AppThemeMode.GREEN,
-            accentDotColors = listOf(Color(0xFF81C784), Color(0xFF1B4D2E), Color(0xFFD97706)),
-            previewBgColor = Color(0xFF0C1610),
-            onClick = { onThemeSelected(AppThemeMode.GREEN) },
-            testTag = "theme_option_green"
+            title = strings.themeBrownTitle,
+            description = strings.themeBrownDesc,
+            isSelected = currentTheme == AppThemeMode.BROWN,
+            accentDotColors = listOf(Color(0xFFE0A96D), Color(0xFF4A2D1A), Color(0xFFF5C563)),
+            previewBgColor = Color(0xFF19120C),
+            onClick = { onThemeSelected(AppThemeMode.BROWN) },
+            testTag = "theme_option_brown"
         )
 
         Spacer(modifier = Modifier.height(10.dp))

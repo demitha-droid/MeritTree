@@ -4,9 +4,9 @@ enum class AppThemeMode(
     val title: String,
     val description: String
 ) {
-    GREEN(
-        title = "Green",
-        description = "Sacred forest night and peaceful emerald Bodhi palette"
+    BROWN(
+        title = "Brown",
+        description = "Sacred sandalwood, warm teak wood and golden monastery earth"
     ),
     LIGHT(
         title = "Light",
@@ -19,7 +19,8 @@ enum class AppThemeMode(
 
     companion object {
         fun fromString(name: String?): AppThemeMode {
-            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: GREEN
+            if (name.equals("GREEN", ignoreCase = true)) return BROWN
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: BROWN
         }
     }
 }

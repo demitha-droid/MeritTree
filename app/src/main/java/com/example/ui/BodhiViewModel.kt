@@ -38,7 +38,7 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("bodhi_settings", Context.MODE_PRIVATE)
 
     private val _themeMode = MutableStateFlow(
-        AppThemeMode.fromString(prefs.getString("theme_mode", AppThemeMode.GREEN.name))
+        AppThemeMode.fromString(prefs.getString("theme_mode", AppThemeMode.BROWN.name))
     )
     val themeMode: StateFlow<AppThemeMode> = _themeMode.asStateFlow()
 
