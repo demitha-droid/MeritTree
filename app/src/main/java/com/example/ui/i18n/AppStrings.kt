@@ -231,6 +231,17 @@ class AppStrings(val language: AppLanguage) {
         "වලාකුළු සුරක්ෂිතතාව: නව උපස්ථයක් සෑදූ සෑම විටම Google Drive වෙත යවා ඔබගේ පින්කම් වලාකුළෙහි සුරක්ෂිත කරගන්න."
     else
         "Cloud Protection Tip: After saving a new backup, send a copy to Google Drive to keep your merit sanctuary safe in the cloud forever."
+
+    // Photo Date & Time Extraction Strings
+    val postDateTimeTitle = if (isSinhala) "පින්කම කළ දිනය සහ වේලාව" else "Merit Date & Time"
+    val photoDateDetectedBadge = if (isSinhala) "ඡායාරූපය ලබාගත් වේලාවෙන් සකසන ලදී" else "Set from photo capture date"
+    val customDateBadge = if (isSinhala) "වෙනස් කළ දිනය" else "Custom date"
+    val currentDateBadge = if (isSinhala) "වර්තමාන දිනය" else "Current date & time"
+    val changeDateButton = if (isSinhala) "දිනය / වේලාව වෙනස් කරන්න" else "Change Date & Time"
+    val resetToPhotoDate = if (isSinhala) "ඡායාරූපයේ දිනයට නැවත සකසන්න" else "Reset to Photo Date"
+    val resetToCurrentDate = if (isSinhala) "වර්තමාන වේලාවට සකසන්න" else "Set to Current Time"
+    val datePickerTitle = if (isSinhala) "පින්කම කළ දිනය තෝරන්න" else "Select Merit Date"
+    val timePickerTitle = if (isSinhala) "පින්කම කළ වේලාව තෝරන්න" else "Select Merit Time"
 }
 
 val LocalAppStrings = compositionLocalOf { AppStrings(AppLanguage.ENGLISH) }

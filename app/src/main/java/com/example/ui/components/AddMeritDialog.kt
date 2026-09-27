@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -29,10 +31,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
@@ -46,6 +52,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -63,17 +70,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.data.MediaDateTimeExtractor
 import com.example.data.MeritCategory
 import com.example.ui.i18n.LocalAppStrings
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 /**
  * Full-Screen "Add New Merit Post" Page.
+ * - Automatically grabs date & time from images/photos added to the post.
+ * - Allows users to easily view, edit, or reset the merit timestamp.
  * - Zero keyboard lag (no layout thrashing, adjustResize window, and stable state reads).
  * - Keyboard back-press safety: Pressing back while the keyboard is open only dismisses the keyboard,
  *   preserving all entered text and picked photos without dismissing the post page!
@@ -89,8 +104,9 @@ fun AddMeritDialog(
     pickedMediaUri: String? = null,
     pickedMediaUris: List<String> = emptyList(),
     initialCategory: MeritCategory = MeritCategory.DANA,
-    onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?) -> Unit
+    onAddMerit: (title: String, category: MeritCategory, description: String, dedication: String, imageUri: String?, timestamp: Long) -> Unit
 ) {
+    val context = LocalContext.current
     val strings = LocalAppStrings.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -107,6 +123,11 @@ fun AddMeritDialog(
     var mediaList by remember { mutableStateOf<List<String>>(emptyList()) }
     var titleError by remember { mutableStateOf(false) }
     var showCameraChooser by remember { mutableStateOf(false) }
+
+    // Date & Time extraction state
+    var postTimestamp by remember { mutableStateOf(System.currentTimeMillis()) }
+    var detectedPhotoTimestamp by remember { mutableStateOf<Long?>(null) }
+    var isCustomDateSet by remember { mutableStateOf(false) }
 
     // Focus tracking for instant responsive keyboard handling
     var isTitleFocused by remember { mutableStateOf(false) }
@@ -136,6 +157,52 @@ fun AddMeritDialog(
         }
     }
 
+    // Automatically grab and apply date & time from images/videos when media list updates
+    LaunchedEffect(mediaList) {
+        if (mediaList.isNotEmpty()) {
+            val extracted = MediaDateTimeExtractor.extractEarliestMediaTimestamp(context, mediaList)
+            if (extracted != null) {
+                detectedPhotoTimestamp = extracted
+                if (!isCustomDateSet) {
+                    postTimestamp = extracted
+                }
+            }
+        } else {
+            detectedPhotoTimestamp = null
+            if (!isCustomDateSet) {
+                postTimestamp = System.currentTimeMillis()
+            }
+        }
+    }
+
+    fun openDateTimePicker() {
+        val cal = Calendar.getInstance().apply { timeInMillis = postTimestamp }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+                TimePickerDialog(
+                    context,
+                    { _, hourOfDay, minute ->
+                        cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        cal.set(Calendar.MINUTE, minute)
+                        postTimestamp = cal.timeInMillis
+                        isCustomDateSet = true
+                    },
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
+                    false
+                ).show()
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
     fun submitPost() {
         if (title.isBlank()) {
             titleError = true
@@ -146,7 +213,8 @@ fun AddMeritDialog(
             selectedCategory,
             description,
             dedication,
-            if (mediaList.isEmpty()) null else mediaList.joinToString("|")
+            if (mediaList.isEmpty()) null else mediaList.joinToString("|"),
+            postTimestamp
         )
         onDismiss()
     }
@@ -460,6 +528,181 @@ fun AddMeritDialog(
                                         color = MaterialTheme.colorScheme.primary
                                     ),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Date & Time of Merit Section Card
+            val formattedDateTime = remember(postTimestamp) {
+                val sdf = SimpleDateFormat("EEEE, MMM d, yyyy • hh:mm a", Locale.getDefault())
+                sdf.format(Date(postTimestamp))
+            }
+
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (detectedPhotoTimestamp != null && postTimestamp == detectedPhotoTimestamp) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("merit_date_time_card")
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (detectedPhotoTimestamp != null && postTimestamp == detectedPhotoTimestamp) Icons.Default.PhotoCamera else Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = strings.postDateTimeTitle,
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // Badge
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when {
+                                detectedPhotoTimestamp != null && postTimestamp == detectedPhotoTimestamp ->
+                                    MaterialTheme.colorScheme.primaryContainer
+                                isCustomDateSet ->
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                else ->
+                                    MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        ) {
+                            Text(
+                                text = when {
+                                    detectedPhotoTimestamp != null && postTimestamp == detectedPhotoTimestamp ->
+                                        "📷 ${strings.photoDateDetectedBadge}"
+                                    isCustomDateSet ->
+                                        "✏️ ${strings.customDateBadge}"
+                                    else ->
+                                        "🕒 ${strings.currentDateBadge}"
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                color = when {
+                                    detectedPhotoTimestamp != null && postTimestamp == detectedPhotoTimestamp ->
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    isCustomDateSet ->
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    else ->
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = formattedDateTime,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                openDateTimePicker()
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .testTag("change_date_time_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = strings.changeDateButton,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+
+                        if (isCustomDateSet && detectedPhotoTimestamp != null) {
+                            TextButton(
+                                onClick = {
+                                    postTimestamp = detectedPhotoTimestamp!!
+                                    isCustomDateSet = false
+                                },
+                                modifier = Modifier.height(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = strings.resetToPhotoDate,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        } else if (isCustomDateSet) {
+                            TextButton(
+                                onClick = {
+                                    postTimestamp = System.currentTimeMillis()
+                                    isCustomDateSet = false
+                                },
+                                modifier = Modifier.height(38.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = strings.resetToCurrentDate,
+                                    style = MaterialTheme.typography.labelSmall
                                 )
                             }
                         }

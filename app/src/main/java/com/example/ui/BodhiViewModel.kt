@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.BodhiDatabase
+import com.example.data.MediaDateTimeExtractor
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
 import com.example.data.MeritRepository
@@ -220,6 +221,8 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
                     uriString.endsWith(".3gp") ||
                     uriString.endsWith(".webm")
 
+            val extractedTimestamp = MediaDateTimeExtractor.extractMediaTimestamp(context, sourceUri.toString())
+
             if (isVideo) {
                 val fileName = "merit_video_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.mp4"
                 val destFile = File(mediaDir, fileName)
@@ -277,15 +280,28 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
                     bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
                 }
                 bitmap.recycle()
-                destFile.absolutePath
             } else {
                 context.contentResolver.openInputStream(sourceUri)?.use { input ->
                     FileOutputStream(destFile).use { output ->
                         input.copyTo(output)
                     }
                 }
-                destFile.absolutePath
             }
+
+            // Write back original EXIF photo timestamp so the local file retains the original capture time
+            if (extractedTimestamp != null) {
+                try {
+                    val exif = android.media.ExifInterface(destFile.absolutePath)
+                    val sdf = java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.US)
+                    val formatted = sdf.format(java.util.Date(extractedTimestamp.toLong()))
+                    exif.setAttribute(android.media.ExifInterface.TAG_DATETIME_ORIGINAL, formatted)
+                    exif.setAttribute(android.media.ExifInterface.TAG_DATETIME_DIGITIZED, formatted)
+                    exif.setAttribute(android.media.ExifInterface.TAG_DATETIME, formatted)
+                    exif.saveAttributes()
+                } catch (_: Exception) {}
+            }
+
+            destFile.absolutePath
         } catch (_: Exception) {
             null
         }
@@ -297,9 +313,11 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
         description: String,
         dedication: String,
         imageUri: String?,
+        customTimestamp: Long? = null,
         targetSlotIndex: Int? = null
     ) {
         viewModelScope.launch {
+            val context = getApplication<Application>()
             val currentList = allMerits.value
             val usedSlots = currentList.map { it.branchIndex }.toSet()
             val maxSlots = com.example.ui.components.BodhiTreeGeometry.LEAF_SLOTS.size
@@ -310,13 +328,21 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
                 (0 until maxSlots).firstOrNull { it !in usedSlots } ?: (currentList.size % maxSlots)
             }
 
+            val timestampToUse = customTimestamp
+                ?: if (!imageUri.isNullOrBlank()) {
+                    val uris = imageUri.split("|").map { it.trim() }.filter { it.isNotBlank() }
+                    MediaDateTimeExtractor.extractEarliestMediaTimestamp(context, uris) ?: System.currentTimeMillis()
+                } else {
+                    System.currentTimeMillis()
+                }
+
             val newMerit = MeritEntity(
                 title = title.trim(),
                 category = category.name,
                 description = description.trim(),
                 dedication = dedication.trim(),
                 imageUri = imageUri,
-                timestamp = System.currentTimeMillis(),
+                timestamp = timestampToUse,
                 branchIndex = branchIndex,
                 leafOffsetRatio = 0.5f,
                 leafAngleOffset = 0f
@@ -336,7 +362,8 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
         newCategory: MeritCategory,
         newDescription: String,
         newDedication: String,
-        newImageUri: String?
+        newImageUri: String?,
+        newTimestamp: Long? = null
     ) {
         viewModelScope.launch {
             val updated = merit.copy(
@@ -344,7 +371,8 @@ class BodhiViewModel(application: Application) : AndroidViewModel(application) {
                 category = newCategory.name,
                 description = newDescription.trim(),
                 dedication = newDedication.trim(),
-                imageUri = newImageUri
+                imageUri = newImageUri,
+                timestamp = newTimestamp ?: merit.timestamp
             )
             repository.update(updated)
             if (_selectedMerit.value?.id == merit.id) {

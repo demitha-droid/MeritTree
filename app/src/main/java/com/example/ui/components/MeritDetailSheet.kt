@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -35,6 +37,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudUpload
@@ -44,6 +47,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Spa
@@ -93,6 +97,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import com.example.R
+import com.example.data.MediaDateTimeExtractor
 import com.example.data.MeritCategory
 import com.example.data.MeritEntity
 import com.example.data.getFirstMediaUri
@@ -101,6 +106,7 @@ import com.example.ui.i18n.LocalAppStrings
 import com.example.ui.sound.MindfulSoundHelper
 import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -115,7 +121,7 @@ fun MeritDetailSheet(
     merit: MeritEntity,
     onDismiss: () -> Unit,
     onDelete: (MeritEntity) -> Unit,
-    onUpdate: (merit: MeritEntity, newTitle: String, newCategory: MeritCategory, newDescription: String, newDedication: String, newImageUri: String?) -> Unit,
+    onUpdate: (merit: MeritEntity, newTitle: String, newCategory: MeritCategory, newDescription: String, newDedication: String, newImageUri: String?, newTimestamp: Long?) -> Unit,
     onUploadMedia: () -> Unit,
     onCapturePhoto: () -> Unit,
     onCaptureVideo: () -> Unit,
@@ -140,6 +146,10 @@ fun MeritDetailSheet(
     var editDescription by remember(merit) { mutableStateOf(merit.description) }
     var editDedication by remember(merit) { mutableStateOf(merit.dedication) }
     var editMediaList by remember(merit.imageUri) { mutableStateOf(merit.getMediaUris()) }
+    var editTimestamp by remember(merit.timestamp) { mutableStateOf(merit.timestamp) }
+    var detectedEditPhotoTimestamp by remember { mutableStateOf<Long?>(null) }
+    var isEditCustomDateSet by remember { mutableStateOf(false) }
+
     val editImageUri = remember(editMediaList) {
         if (editMediaList.isEmpty()) null else editMediaList.joinToString("|")
     }
@@ -157,6 +167,45 @@ fun MeritDetailSheet(
         if (newItems.isNotEmpty() && isEditing) {
             editMediaList = (editMediaList + newItems).distinct()
         }
+    }
+
+    LaunchedEffect(editMediaList) {
+        if (editMediaList.isNotEmpty()) {
+            val extracted = MediaDateTimeExtractor.extractEarliestMediaTimestamp(context, editMediaList)
+            if (extracted != null) {
+                detectedEditPhotoTimestamp = extracted
+            }
+        } else {
+            detectedEditPhotoTimestamp = null
+        }
+    }
+
+    fun openEditDateTimePicker() {
+        val cal = Calendar.getInstance().apply { timeInMillis = editTimestamp }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                cal.set(Calendar.YEAR, year)
+                cal.set(Calendar.MONTH, month)
+                cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+
+                TimePickerDialog(
+                    context,
+                    { _, hourOfDay, minute ->
+                        cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                        cal.set(Calendar.MINUTE, minute)
+                        editTimestamp = cal.timeInMillis
+                        isEditCustomDateSet = true
+                    },
+                    cal.get(Calendar.HOUR_OF_DAY),
+                    cal.get(Calendar.MINUTE),
+                    false
+                ).show()
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     val currentCategory = if (isEditing) editCategory else MeritCategory.fromString(merit.category)
@@ -207,7 +256,8 @@ fun MeritDetailSheet(
             editCategory,
             editDescription,
             editDedication,
-            if (editMediaList.isEmpty()) null else editMediaList.joinToString("|")
+            if (editMediaList.isEmpty()) null else editMediaList.joinToString("|"),
+            editTimestamp
         )
         isEditing = false
         focusManager.clearFocus()
@@ -583,6 +633,162 @@ fun MeritDetailSheet(
                                             color = MaterialTheme.colorScheme.primary
                                         ),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Edit Date & Time Section Card
+                val formattedEditDateTime = remember(editTimestamp) {
+                    val sdf = SimpleDateFormat("EEEE, MMM d, yyyy • hh:mm a", Locale.getDefault())
+                    sdf.format(Date(editTimestamp))
+                }
+
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (detectedEditPhotoTimestamp != null && editTimestamp == detectedEditPhotoTimestamp) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("edit_merit_date_time_card")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (detectedEditPhotoTimestamp != null && editTimestamp == detectedEditPhotoTimestamp) Icons.Default.PhotoCamera else Icons.Default.CalendarToday,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = strings.postDateTimeTitle,
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Badge
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = when {
+                                    detectedEditPhotoTimestamp != null && editTimestamp == detectedEditPhotoTimestamp ->
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    isEditCustomDateSet ->
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    else ->
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ) {
+                                Text(
+                                    text = when {
+                                        detectedEditPhotoTimestamp != null && editTimestamp == detectedEditPhotoTimestamp ->
+                                            "📷 ${strings.photoDateDetectedBadge}"
+                                        isEditCustomDateSet ->
+                                            "✏️ ${strings.customDateBadge}"
+                                        else ->
+                                            "🕒 ${strings.currentDateBadge}"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    color = when {
+                                        detectedEditPhotoTimestamp != null && editTimestamp == detectedEditPhotoTimestamp ->
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        isEditCustomDateSet ->
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        else ->
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = formattedEditDateTime,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                    openEditDateTimePicker()
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .testTag("edit_change_date_time_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = strings.changeDateButton,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+                                )
+                            }
+
+                            if (detectedEditPhotoTimestamp != null && editTimestamp != detectedEditPhotoTimestamp) {
+                                TextButton(
+                                    onClick = {
+                                        editTimestamp = detectedEditPhotoTimestamp!!
+                                        isEditCustomDateSet = false
+                                    },
+                                    modifier = Modifier.height(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = strings.resetToPhotoDate,
+                                        style = MaterialTheme.typography.labelSmall
                                     )
                                 }
                             }

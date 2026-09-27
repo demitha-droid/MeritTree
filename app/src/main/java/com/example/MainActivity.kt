@@ -495,14 +495,15 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             onDelete = {
                 viewModel.deleteMerit(it)
             },
-            onUpdate = { targetMerit, newTitle, newCategory, newDesc, newDedication, newImageUri ->
+            onUpdate = { targetMerit, newTitle, newCategory, newDesc, newDedication, newImageUri, newTimestamp ->
                 viewModel.updateMerit(
                     merit = targetMerit,
                     newTitle = newTitle,
                     newCategory = newCategory,
                     newDescription = newDesc,
                     newDedication = newDedication,
-                    newImageUri = newImageUri
+                    newImageUri = newImageUri,
+                    newTimestamp = newTimestamp
                 )
                 editPickedMediaUris = emptyList()
             },
@@ -549,8 +550,16 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
             },
             pickedMediaUris = currentPickedMediaUris,
             initialCategory = nextVariedCategory,
-            onAddMerit = { title, category, description, dedication, imageUri ->
-                viewModel.addMerit(title, category, description, dedication, imageUri, targetSlotId)
+            onAddMerit = { title, category, description, dedication, imageUri, timestamp ->
+                viewModel.addMerit(
+                    title = title,
+                    category = category,
+                    description = description,
+                    dedication = dedication,
+                    imageUri = imageUri,
+                    customTimestamp = timestamp,
+                    targetSlotIndex = targetSlotId
+                )
                 currentPickedMediaUris = emptyList()
                 showAddDialog = false
             }
