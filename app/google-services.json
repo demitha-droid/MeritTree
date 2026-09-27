@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "57561750388",
+    "project_id": "merittree-7b7bc",
+    "storage_bucket": "merittree-7b7bc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:57561750388:android:397f1d42a5bb97f6d26a21",
+        "android_client_info": {
+          "package_name": "com.aistudio.bodhimerit.kmvplq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYhrGfjlSHcSLZTOstIwOeTjHM6sxt4_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

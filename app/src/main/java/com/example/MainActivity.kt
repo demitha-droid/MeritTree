@@ -82,6 +82,7 @@ import com.example.ui.components.MeritDetailSheet
 import com.example.ui.components.MeritJournalList
 import com.example.ui.components.MeritTreeTopBar
 import com.example.ui.components.SettingsScreen
+import com.example.analytics.BodhiAnalytics
 import com.example.ui.i18n.AppStrings
 import com.example.ui.i18n.LocalAppStrings
 import com.example.ui.theme.MyApplicationTheme
@@ -92,6 +93,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        BodhiAnalytics.init(this)
         enableEdgeToEdge()
         setContent {
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -128,6 +130,10 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
     var targetSlotId by remember { mutableStateOf<Int?>(null) }
     var currentPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
     var editPickedMediaUris by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(activeTab) {
+        BodhiAnalytics.logScreenView(activeTab.name)
+    }
 
     val context = LocalContext.current
     var pendingCameraMediaFile by remember { mutableStateOf<File?>(null) }
@@ -559,6 +565,12 @@ fun BodhiMeritApp(viewModel: BodhiViewModel) {
                     imageUri = imageUri,
                     customTimestamp = timestamp,
                     targetSlotIndex = targetSlotId
+                )
+                BodhiAnalytics.logMeritCreated(
+                    category = category.name,
+                    hasPhoto = imageUri != null,
+                    hasAudio = false,
+                    hasVideo = false
                 )
                 currentPickedMediaUris = emptyList()
                 showAddDialog = false
